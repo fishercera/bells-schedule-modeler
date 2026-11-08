@@ -148,6 +148,17 @@ select.pick { width: auto; max-width: 260px; font-weight: 600; }
 .chip.on { outline: 2px solid var(--accent); outline-offset: 1px; }
 .chip .nm { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chip .ln { font: 500 12px var(--f-data); }
+/* Student groups: the list in the left column, the label on a block that's only for some groups, and checkbox lists */
+.gmark { display: inline-block; margin-left: 4px; padding: 0 3px; border: 1px solid currentColor; border-radius: 3px; font: 600 9.5px/1.3 var(--f-body); opacity: .85; vertical-align: 1px; white-space: nowrap; }
+.glist { display: flex; flex-direction: column; gap: 2px; }
+.glist .gsec { font: 600 11px/1.3 var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--rule); padding: 4px 0 1px; }
+.grow { display: flex; align-items: baseline; gap: 6px; width: 100%; padding: 3px 6px; border: 1px solid transparent; border-radius: 5px; background: none; text-align: left; cursor: pointer; }
+.grow:hover { border-color: var(--rule-strong); }
+.grow.on { border-color: var(--accent); background: var(--accent-soft); }
+.grow .gn { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grow .gi { flex: none; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.checks { display: flex; flex-wrap: wrap; gap: 3px 12px; }
+.checks .sep { flex-basis: 100%; height: 0; }
 
 /* Week sheets */
 .sheets { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
@@ -372,17 +383,21 @@ const BUILTIN_IDS = new Set(BUILTIN.map(t => t.id));
    Advisory and Break become the model's own types, and only when one of its blocks uses them. */
 const V1_TYPES = [BUILTIN[0], { id: 'advisory', name: 'Advisory', len: 25, academic: false },
   BUILTIN[1], { id: 'break', name: 'Break', len: 10, academic: false }, BUILTIN[2]];
-const NOTE_MAX = 500, TYPE_NAME_MAX = 30;
+const NOTE_MAX = 500, TYPE_NAME_MAX = 30, GROUP_NAME_MAX = 30;
+/* Student groups. Each model has its own list, starting with these four grades, which can be renamed or deleted.
+   A block is for all students unless it is tagged with groups. A combined group (one with members) stands for
+   several plain groups, e.g. Underclassmen = Prep + LM. A plain group ticked as a grade is part of All students. */
+const DEFAULT_GROUPS = ['Prep', 'LM', 'UM', 'Senior'], ALL_NAME = 'All students';
 // Version 2 added each model's own types (with default lengths) and notes on types, blocks and single placements.
-// Version 1 files still import.
-const FILE_VERSION = 2;
+// Version 3 added student groups. Older files still import, with the four default groups and every block for all students.
+const FILE_VERSION = 3;
 const HUES = [212, 158, 32, 340, 268, 186, 95, 12, 240, 52, 300, 130];
 const SNAP = 5, MIN_LEN = 5, MAX_LANES = 4;
 /* Allowed ranges, in minutes. Every way a number gets in (typing, dragging, import, saved data)
    goes through these, so no value can make the calendar too large to draw. */
 const LIM = { len: [MIN_LEN, 600], pass: [0, 60], gap: [0, 480], start: [0, 1439] };
 /* Import limits, far above any real schedule, so a crafted file can't stall the page. */
-const MAX = { models: 100, blocks: 100, items: 60, laneItems: 30, types: 20 };
+const MAX = { models: 100, blocks: 100, items: 60, laneItems: 30, types: 20, groups: 20 };
 const ZOOMS = { Compact: 0.85, Normal: 1.15, Large: 1.6 };
 const IS_LOCAL = /^(file:|https?:\/\/(localhost|127\.0\.0\.1|\[::1\]))/.test(location.href);
 
@@ -425,13 +440,14 @@ const bag = () => Object.create(null);
 const safeId = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(v);
 
 /* ---------- Model construction ---------- */
-const mkBlock = (name, cat, len, hue, target = null) => ({ id: uid(), name, cat, len, hue, target, note: '' });
+const mkBlock = (name, cat, len, hue, target = null) => ({ id: uid(), name, cat, len, hue, target, note: '', groups: [] });
 const mkTypes = (lens = {}) => BUILTIN.map(t => ({ ...t, len: lens[t.id] ?? t.len, note: '' }));
+const mkGroups = () => DEFAULT_GROUPS.map(name => ({ id: uid(), name, grade: true }));
 const mkItem = (blockId, dur = null, gap = null) => ({ id: uid(), t: 'b', blockId, dur, gap });
 const mkSplit = (lanes, gap = null) => ({ id: uid(), t: 's', gap, lanes });
 const emptyDays = start => Array.from({ length: 14 }, () => ({ start, items: [] }));
 function mkModel(name, blocks, opts = {}) {
-  return { id: uid(), name, passing: opts.passing ?? 5, defaultStart: opts.start ?? 480, classTarget: opts.classTarget ?? null, types: mkTypes(opts.lens), blocks: [...blocks], days: emptyDays(opts.start ?? 480) };
+  return { id: uid(), name, passing: opts.passing ?? 5, defaultStart: opts.start ?? 480, classTarget: opts.classTarget ?? null, types: mkTypes(opts.lens), groups: mkGroups(), blocks: [...blocks], days: emptyDays(opts.start ?? 480) };
 }
 /* Names are compared without case or surrounding spaces. A taken name gets a number added. */
 const nameKey = s => String(s).trim().toLowerCase();
@@ -453,6 +469,14 @@ const typeById = (m, id) => m.types.find(t => t.id === id);
 const typeOf = (m, id) => typeById(m, id) ?? typeById(m, 'other');
 const typeName = (m, id) => typeOf(m, id)?.name ?? 'Other';
 const isAcad = (m, b) => !!b && !!typeOf(m, b.cat)?.academic;
+const grpById = (m, id) => m.groups.find(g => g.id === id);
+const isCombo = g => Array.isArray(g?.members);
+const grpNames = (m, exceptId) => m.groups.filter(g => g.id !== exceptId).map(g => g.name);
+// Who a block is for, in words: its groups' names, or All students.
+const forText = (m, b) => b.groups.length ? b.groups.map(id => grpById(m, id)?.name).filter(Boolean).join(', ') : 'All students';
+// A small label after a block's name, e.g. "Sr" or "Prep · LM". Blocks for all students have none.
+const grpShort = name => name.length <= 6 ? name : shortName(name);
+const gmark = (m, b) => b.groups.length ? `<span class="gmark" aria-hidden="true">${esc(b.groups.map(id => grpById(m, id)).filter(Boolean).map(g => grpShort(g.name)).join(' · '))}</span>` : '';
 // Notes are plain text: line breaks are kept, other control characters are dropped.
 const cleanNote = v => typeof v === 'string' ? v.replace(/\r\n?/g, '\n').replace(/\t/g, ' ').replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, '').slice(0, NOTE_MAX).trim() : '';
 // Names sort with their numbers in order, so Period 2 comes before Period 10.
@@ -689,7 +713,7 @@ function reId(it) {
 /* ---------- App state ---------- */
 /* Which side columns and panels are folded. Remembered in this browser, like units and calendar size.
    rightAuto: the right column was folded, and selecting something opened it; clearing the selection folds it again. */
-const PANELS = ['blocks', 'settings', 'editor', 'ledger'];
+const PANELS = ['blocks', 'groups', 'settings', 'editor', 'ledger'];
 function cleanFold(f) {
   return { left: f?.left === true, right: f?.right === true, panels: Object.fromEntries(PANELS.map(k => [k, f?.panels?.[k] === true])) };
 }
@@ -742,6 +766,7 @@ function restore(from, to) {
   if (S.sel?.kind === 'item' && !findItem(M(), S.sel.id)) S.sel = null;
   if (S.sel?.kind === 'block' && !blockOf(M(), S.sel.id)) S.sel = null;
   if (S.sel?.kind === 'type' && !typeById(M(), S.sel.id)) S.sel = null;
+  if (S.sel?.kind === 'group' && !grpById(M(), S.sel.id)) S.sel = null;
   persist(); render();
 }
 let toastTimer;
@@ -785,7 +810,7 @@ function followSel() {
 function dropStaleSel() {
   const m = M(), s = S.sel;
   if (!s) return;
-  if ((s.kind === 'item' && !findItem(m, s.id)) || (s.kind === 'block' && !blockOf(m, s.id)) || (s.kind === 'type' && !typeById(m, s.id)) || (s.kind === 'run' && !runInfo(m, s)) || (s.kind === 'day' && !m.days[s.d])) S.sel = null;
+  if ((s.kind === 'item' && !findItem(m, s.id)) || (s.kind === 'block' && !blockOf(m, s.id)) || (s.kind === 'type' && !typeById(m, s.id)) || (s.kind === 'group' && !grpById(m, s.id)) || (s.kind === 'run' && !runInfo(m, s)) || (s.kind === 'day' && !m.days[s.d])) S.sel = null;
 }
 /* Redrawing replaces the panels, which would drop keyboard focus (Tab would land nowhere).
    This finds the focused field or button again by its id or data attributes and refocuses it. */
@@ -859,10 +884,20 @@ function renderLeft() {
           <button class="tadd" data-act="addBlockOfType" data-type="${esc(g.id)}" title="Add a ${esc(g.name)} block" aria-label="Add a ${esc(g.name)} block">+</button></div>
         ${g.blocks.map(b => `
         <div class="chip${S.sel?.kind === 'block' && S.sel.id === b.id ? ' on' : ''}" style="--h:${b.hue}" ${isAcad(m, b) ? '' : 'data-noncat'}
-          data-pal="${esc(b.id)}" role="button" tabindex="0" aria-label="${esc(b.name)}, ${esc(g.name)}, ${b.len} minutes${b.note ? ', has a note' : ''}">
-          <span class="nm">${esc(b.name)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span><span class="ln">${b.len}m${b.len !== g.type.len ? '*' : ''}</span></div>`).join('')}
+          data-pal="${esc(b.id)}" role="button" tabindex="0" aria-label="${esc(b.name)}, ${esc(g.name)}, ${b.len} minutes${b.groups.length ? `, for ${esc(forText(m, b))}` : ''}${b.note ? ', has a note' : ''}">
+          <span class="nm">${esc(b.name)}${gmark(m, b)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span><span class="ln">${b.len}m${b.len !== g.type.len ? '*' : ''}</span></div>`).join('')}
       </div>`).join('')}</div>
     <div class="btnrow"><button class="btn sm" data-act="addType" ${m.types.length >= MAX.types ? 'disabled' : ''}>Add type</button></div>`;
+  const tagged = id => m.blocks.filter(b => b.groups.includes(id)).length;
+  const grow = g => `<button class="grow${S.sel?.kind === 'group' && S.sel.id === g.id ? ' on' : ''}" data-act="selGroup" data-g="${esc(g.id)}">
+      <span class="gn">${esc(g.name)}</span><span class="gi">${isCombo(g) ? esc(g.members.map(id => grpById(m, id)?.name).filter(Boolean).join(' + ') || 'No members') : g.grade ? 'Grade' : ''}${tagged(g.id) ? ` · ${tagged(g.id)} block${tagged(g.id) > 1 ? 's' : ''}` : ''}</span></button>`;
+  const plain = m.groups.filter(g => !isCombo(g)), combos = m.groups.filter(isCombo), full = m.groups.length >= MAX.groups;
+  const groupsBody = `
+    <p class="hint">Blocks are for all students unless you tick groups under Who attends in a block's settings.</p>
+    <div class="glist">${plain.map(grow).join('') || '<p class="hint">No groups yet.</p>'}
+      ${combos.length ? `<div class="gsec">Combined</div>${combos.map(grow).join('')}` : ''}</div>
+    <div class="btnrow"><button class="btn sm" data-act="addGroup" ${full ? 'disabled' : ''}>Add group</button>
+      <button class="btn sm" data-act="addCombo" ${full || !plain.length ? 'disabled' : ''}>Add combined group</button></div>`;
   const settings = `
     <div class="field"><label for="mName">Model name</label><input class="txt" id="mName" maxlength="80" value="${esc(m.name)}" data-f="mName"></div>
     <div class="fieldrow">
@@ -875,6 +910,7 @@ function renderLeft() {
       <select class="txt" id="zoom" data-f="zoom">${Object.keys(ZOOMS).map(z => `<option${z === S.zoom ? ' selected' : ''}>${z}</option>`).join('')}</select></div>`;
   $('#left').innerHTML = `<div class="colbar">${colBtn('left')}</div>
     ${panelHTML('blocks', 'Blocks', 'Blocks', '<button class="btn sm" data-act="addBlock">Add</button>', tray)}
+    ${panelHTML('groups', 'Student groups', 'Student groups', '', groupsBody)}
     ${panelHTML('settings', 'Model settings', 'Model settings', '', settings)}`;
 }
 function renderCenter() {
@@ -937,9 +973,9 @@ function seqHTML(m, items, t0, origin, top, d) {
       if (b) {
         const on = isSel(it.id), mins = end - start, changed = it.dur != null && it.dur !== b.len;
         out += `<div class="blk${on ? ' on' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px" ${isAcad(m, b) ? '' : 'data-noncat'} data-item="${esc(it.id)}" tabindex="0" role="button"
-          aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes${it.note ? ', has a note for this day' : ''}${b.note ? ', has a block note' : ''}">
+          aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes${b.groups.length ? `, for ${esc(forText(m, b))}` : ''}${it.note ? ', has a note for this day' : ''}${b.note ? ', has a block note' : ''}">
           <span class="rz t" data-rz="t"></span>
-          <span class="nm">${esc(b.name)}${it.note ? '<span class="nmark">✎</span>' : ''}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>
+          <span class="nm">${esc(b.name)}${gmark(m, b)}${it.note ? '<span class="nmark">✎</span>' : ''}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>
           ${h >= 30 ? `<span class="tm">${clock(start)}–${clock(end)}</span>` : ''}
           ${h >= 42 ? `<span class="tm">${changed ? `<span class="mod">${mins}m*</span>` : `${mins}m`}</span>` : ''}
           <span class="rz b" data-rz="b"></span></div>`;
@@ -1000,6 +1036,7 @@ function inspectorHTML() {
   if (!sel) return '';
   if (sel.kind === 'block') return blockInspector(m, blockOf(m, sel.id));
   if (sel.kind === 'type') return typeInspector(m, typeById(m, sel.id));
+  if (sel.kind === 'group') return groupInspector(m, grpById(m, sel.id));
   if (sel.kind === 'run') { const info = runInfo(m, sel); return info ? runInspector(m, info) : ''; }
   if (sel.kind === 'day') return dayInspector(m, sel.d);
   const f = findItem(m, sel.id);
@@ -1017,6 +1054,7 @@ function blockInspector(m, b) {
       <div class="field"><label for="bCat">Type</label><select class="txt" id="bCat" data-f="bCat">${m.types.map(t => `<option value="${esc(t.id)}"${t.id === b.cat ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
       <div class="field"><label for="bLen">Default length (min)</label><input class="txt num" id="bLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${b.len}" data-f="bLen"></div>
     </div>
+    ${whoAttendsHTML(m, b)}
     <div class="field"><label for="bTarget">Target, two-week total (min)</label><input class="txt num" id="bTarget" type="number" min="0" placeholder="None" value="${b.target ?? ''}" data-f="bTarget"></div>
     <div class="field"><label for="bNote">Note</label><textarea class="txt note-in" id="bNote" maxlength="${NOTE_MAX}" rows="3" placeholder="Shown when you hover over this block" data-f="bNote">${esc(b.note)}</textarea></div>
     <div class="field"><span class="lab">Color</span><div class="btnrow">${HUES.map(h => `<button class="chip" style="--h:${h};width:22px;height:22px;padding:0;cursor:pointer" data-act="hue" data-h="${h}" aria-label="Color ${h}"${h === b.hue ? ' aria-pressed="true"' : ''}>${h === b.hue ? '<span style="margin:auto">✓</span>' : ''}</button>`).join('')}</div></div>
@@ -1024,6 +1062,33 @@ function blockInspector(m, b) {
       ${b.len !== typeOf(m, b.cat).len ? `<br>The ${esc(typeName(m, b.cat))} default is ${typeOf(m, b.cat).len} min.` : ''}</p>
     <div class="btnrow">${b.len !== typeOf(m, b.cat).len ? `<button class="btn sm" data-act="useTypeLen">Use ${esc(typeName(m, b.cat))} default</button>` : ''}
       <button class="btn sm danger" data-act="delBlock">Delete block</button></div>`);
+}
+/* Who attends: All students, or the groups ticked. Ticking a group unticks All students; unticking the last group
+   ticks it again. A combined group is a shortcut for its members. */
+function whoAttendsHTML(m, b) {
+  if (!m.groups.length) return '';
+  const box = g => `<label class="check"><input type="checkbox" id="bg-${esc(g.id)}" data-f="bGroup" data-g="${esc(g.id)}"${b.groups.includes(g.id) ? ' checked' : ''}> ${esc(g.name)}</label>`;
+  const plain = m.groups.filter(g => !isCombo(g)), combos = m.groups.filter(isCombo);
+  return `<div class="field"><span class="lab">Who attends</span>
+    <div class="checks"><label class="check"><input type="checkbox" id="bAll" data-f="bAll"${b.groups.length ? '' : ' checked'}> All students</label>
+      <span class="sep"></span>${plain.map(box).join('')}${combos.length ? `<span class="sep"></span>${combos.map(box).join('')}` : ''}</div>
+    <p class="hint">${b.groups.length ? `For ${esc(forText(m, b))} only. Other students skip it: that time counts as Free time for them.` : 'Every student attends this block.'}</p></div>`;
+}
+function groupInspector(m, g) {
+  if (!g) return '';
+  const combo = isCombo(g), plain = m.groups.filter(x => !isCombo(x));
+  const tagged = sortedBlocks(m).filter(b => b.groups.includes(g.id));
+  const inCombos = combo ? [] : m.groups.filter(x => isCombo(x) && x.members.includes(g.id));
+  return inspPanel(combo ? 'Combined group' : 'Student group', `
+    <div class="field"><label for="gName">Name</label><input class="txt" id="gName" maxlength="${GROUP_NAME_MAX}" value="${esc(g.name)}" data-f="gName"></div>
+    ${combo ? `<div class="field"><span class="lab">Members</span>
+        <div class="checks">${plain.map(x => `<label class="check"><input type="checkbox" id="gm-${esc(x.id)}" data-f="gMem" data-g="${esc(x.id)}"${g.members.includes(x.id) ? ' checked' : ''}> ${esc(x.name)}</label>`).join('')}</div>
+        <p class="hint">${g.members.length ? `Totals for ${esc(g.name)} show the lowest to highest of its members. Tagging a block ${esc(g.name)} makes it for every member.` : 'Tick at least one member.'}</p></div>`
+      : `<label class="check"><input type="checkbox" id="gGrade" data-f="gGrade"${g.grade ? ' checked' : ''}> Is a grade</label>
+        <p class="hint">All students shows the lowest to highest of the groups that are grades. Leave this off for groups that cut across grades, like Athlete.</p>
+        ${inCombos.length ? `<p class="hint">Part of ${esc(inCombos.map(x => x.name).join(', '))}.</p>` : ''}`}
+    <p class="hint">${tagged.length ? `Tagged on ${tagged.length} block${tagged.length > 1 ? 's' : ''}: ${esc(tagged.map(b => b.name).join(', '))}.` : 'No blocks are tagged with this group yet. Tag one under Who attends in its settings.'}</p>
+    <div class="btnrow"><button class="btn sm danger" data-act="delGroup">Delete group</button></div>`);
 }
 function typeInspector(m, t) {
   if (!t) return '';
@@ -1245,6 +1310,28 @@ function removeType(m, id, moveTo) {
   m.blocks.forEach(b => { if (b.cat === id) b.cat = moveTo; });
   m.types = m.types.filter(t => t.id !== id);
 }
+/* Deleting a group: blocks lose its tag (a block left with no tags is for all students again), combined groups lose it
+   as a member, and a combined group that only had this member is deleted too. */
+function groupDeleteEffects(m, id) {
+  const g = grpById(m, id);
+  const emptied = !g || isCombo(g) ? [] : m.groups.filter(c => isCombo(c) && c.members.length && c.members.every(x => x === id));
+  const gone = new Set([id, ...emptied.map(c => c.id)]);
+  const tagged = m.blocks.filter(b => b.groups.some(x => gone.has(x)));
+  return { g, emptied, gone, tagged, toAll: tagged.filter(b => b.groups.every(x => gone.has(x))) };
+}
+function removeGroup(m, id) {
+  const { gone } = groupDeleteEffects(m, id);
+  m.groups = m.groups.filter(g => !gone.has(g.id));
+  m.groups.forEach(c => { if (isCombo(c)) c.members = c.members.filter(x => !gone.has(x)); });
+  m.blocks.forEach(b => { b.groups = b.groups.filter(x => !gone.has(x)); });
+}
+function addGroupOf(combo) {
+  if (M().groups.length >= MAX.groups) return toast(`A model can have at most ${MAX.groups} student groups.`);
+  let g; commit(m => { g = { id: uid(), name: uniqueName(combo ? 'New combined group' : 'New group', [...grpNames(m), ALL_NAME]), ...(combo ? { members: [] } : { grade: false }) }; m.groups.push(g); });
+  S.sel = { kind: 'group', id: g.id }; render(); $('#gName')?.select();
+}
+// Lists of group ids are kept in the order of the model's group list.
+const inGroupOrder = (m, ids) => { const s = new Set(ids); return m.groups.filter(g => s.has(g.id)).map(g => g.id); };
 function removeBlock(m, id) {
   const strip = seq => seq.filter(it => it.t !== 'b' || it.blockId !== id);
   m.days.forEach(day => {
@@ -1353,6 +1440,21 @@ const actions = {
       $('#dtf', d).onsubmit = e => { e.preventDefault(); const to = $('#dtTo', d).value; dlg.close(); go(to); };
     });
   },
+  selGroup(el) { S.sel = { kind: 'group', id: el.dataset.g }; render(); },
+  addGroup() { addGroupOf(false); },
+  addCombo() { addGroupOf(true); },
+  delGroup() {
+    const m = M(), e = groupDeleteEffects(m, S.sel.id);
+    if (!e.g) return;
+    const go = () => { S.sel = null; commit(mm => removeGroup(mm, e.g.id)); toast(`Deleted ${e.g.name}`); };
+    if (!e.tagged.length && !e.emptied.length) return go();
+    const names = list => list.map(x => x.name).join(', '), n = e.tagged.length, k = e.toAll.length;
+    const parts = [];
+    if (n) parts.push(`${n} block${n > 1 ? 's are' : ' is'} tagged with it${e.emptied.length ? ` or with ${names(e.emptied)}` : ''} and will lose that tag: ${names(e.tagged)}.`);
+    if (k) parts.push(`${k === n ? (n > 1 ? 'None of them has' : 'It has') : `${names(e.toAll)} ${k > 1 ? 'have' : 'has'}`} no other group, so ${k > 1 ? 'they go' : 'it goes'} back to All students.`);
+    if (e.emptied.length) parts.push(`${names(e.emptied)} would have no members left, so ${e.emptied.length > 1 ? 'they are' : 'it is'} deleted too.`);
+    confirmDlg(`Delete ${e.g.name}?`, `${parts.join(' ')} Undo can reverse this.`, 'Delete group', go);
+  },
   hue(el) { commit(m => { blockOf(m, S.sel.id).hue = +el.dataset.h; }); },
   delBlock() {
     const m = M(), b = blockOf(m, S.sel.id), n = placements(m, b.id).length;
@@ -1458,6 +1560,26 @@ const fields = {
   tAcad(v, el) { const on = el.checked; commit(m => { const t = typeById(m, S.sel.id); if (t) t.academic = on; }); },
   tNote(v) { const note = cleanNote(v), id = S.sel.id; commit(m => { const t = typeById(m, id); if (t) t.note = note; }); },
   bNote(v) { const note = cleanNote(v), id = S.sel.id; commit(m => { const b = blockOf(m, id); if (b) b.note = note; }); },
+  bAll(v, el) {
+    const id = S.sel.id;
+    if (el.checked) commit(m => { const b = blockOf(m, id); if (b) b.groups = []; });
+    else { toast('To narrow it down, tick the groups that attend.'); queueRender(); }
+  },
+  bGroup(v, el) {
+    const on = el.checked, x = el.dataset.g, id = S.sel.id;
+    commit(m => { const b = blockOf(m, id); if (!b || !grpById(m, x)) return; b.groups = inGroupOrder(m, on ? [...b.groups, x] : b.groups.filter(y => y !== x)); });
+  },
+  gName(v) {
+    const want = v.trim().slice(0, GROUP_NAME_MAX); if (!want) return queueRender();
+    const id = S.sel.id, name = uniqueName(want, [...grpNames(M(), id), ALL_NAME]);
+    commit(m => { const g = grpById(m, id); if (g) g.name = name; });
+    if (name !== want) toast(`${nameKey(want) === nameKey(ALL_NAME) ? `${ALL_NAME} is already used for everyone` : `Another group is already named ${want}`}, so this one is ${name}.`);
+  },
+  gGrade(v, el) { const on = el.checked, id = S.sel.id; commit(m => { const g = grpById(m, id); if (g && !isCombo(g)) g.grade = on; }); },
+  gMem(v, el) {
+    const on = el.checked, x = el.dataset.g, id = S.sel.id;
+    commit(m => { const g = grpById(m, id), p = grpById(m, x); if (!isCombo(g) || !p || isCombo(p)) return; g.members = inGroupOrder(m, on ? [...g.members, x] : g.members.filter(y => y !== x)); });
+  },
   mPass(v) { const n = within(v, LIM.pass); if (n != null) commit(m => { m.passing = n; }); else { toast(rangeMsg('Passing', LIM.pass)); queueRender(); } },
   mStart(v) {
     const t = parseTime(v); if (t == null) return queueRender();
@@ -1731,7 +1853,8 @@ function tipHTML(el) {
   }
   const t = typeOf(m, b.cat);
   return `<div class="hc-title"><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}</div>
-    <div class="hc-meta">${esc(t.name)}${t.academic ? '' : ' (not class time)'} · ${meta}</div>${own}${note('Block note', b.note)}${note(`${t.name} note`, t.note)}`;
+    <div class="hc-meta">${esc(t.name)}${t.academic ? '' : ' (not class time)'} · ${meta}</div>
+    ${b.groups.length ? `<div class="hc-meta">For ${esc(forText(m, b))}</div>` : ''}${own}${note('Block note', b.note)}${note(`${t.name} note`, t.note)}`;
 }
 function showTip(el) {
   hcTimer = null;
@@ -1858,8 +1981,8 @@ const csvCell = v => {
 const csv = rows => rows.map(r => r.map(csvCell).join(',')).join('\r\n');
 const plainR = r => !r ? 0 : r.lo === r.hi ? r.lo : `${r.lo}-${r.hi}`;
 function scheduleCSV(m) {
-  const rows = [['Week', 'Day', 'Lane', 'Start', 'End', 'Block', 'Type', 'Minutes', 'Passing before', 'Note']];
-  const add = (d, lane, x, extra = 0) => { const b = blockOf(m, x.it.blockId); rows.push([d < 7 ? 1 : 2, DAYS[d % 7], lane, hhmm(x.start), hhmm(x.end), b.name, typeName(m, b.cat), x.end - x.start, x.gap + extra, x.it.note ?? '']); };
+  const rows = [['Week', 'Day', 'Lane', 'Start', 'End', 'Block', 'Type', 'For', 'Minutes', 'Passing before', 'Note']];
+  const add = (d, lane, x, extra = 0) => { const b = blockOf(m, x.it.blockId); rows.push([d < 7 ? 1 : 2, DAYS[d % 7], lane, hhmm(x.start), hhmm(x.end), b.name, typeName(m, b.cat), forText(m, b), x.end - x.start, x.gap + extra, x.it.note ?? '']); };
   m.days.forEach((day, d) => layoutSeq(m, day.items, day.start, true).forEach(x => {
     if (x.it.t === 'b') add(d, '', x);
     else x.it.lanes.forEach((l, li) => layoutSeq(m, l, x.start, false).forEach((y, yi) => add(d, li + 1, y, yi === 0 ? x.gap : 0)));
@@ -1867,14 +1990,14 @@ function scheduleCSV(m) {
   return csv(rows);
 }
 function totalsCSV(m) {
-  const t = totals(m), rows = [['Item', 'Type', 'Week 1 min', 'Week 2 min', 'Two-week min', 'Two-week target', 'Status', 'Block note', 'Type note']];
+  const t = totals(m), rows = [['Item', 'Type', 'For', 'Week 1 min', 'Week 2 min', 'Two-week min', 'Two-week target', 'Status', 'Block note', 'Type note']];
   const st = s => !s ? '' : s.met ? 'Met' : `${s.short} short`;
-  rows.push(['All class time', 'Class time', plainR(t.w[0].acad), plainR(t.w[1].acad), plainR(t.all.acad), m.classTarget ?? '', st(targetState(m.classTarget, t.all.acad))]);
-  sortedBlocks(m).forEach(b => rows.push([b.name, typeName(m, b.cat), plainR(t.w[0].blocks[b.id]), plainR(t.w[1].blocks[b.id]), plainR(t.all.blocks[b.id]), b.target ?? '', st(targetState(b.target, t.all.blocks[b.id])), b.note, typeOf(m, b.cat).note]));
-  rows.push(['Passing', 'Passing', plainR(t.w[0].pass), plainR(t.w[1].pass), plainR(t.all.pass), '', '']);
+  rows.push(['All class time', 'Class time', '', plainR(t.w[0].acad), plainR(t.w[1].acad), plainR(t.all.acad), m.classTarget ?? '', st(targetState(m.classTarget, t.all.acad))]);
+  sortedBlocks(m).forEach(b => rows.push([b.name, typeName(m, b.cat), forText(m, b), plainR(t.w[0].blocks[b.id]), plainR(t.w[1].blocks[b.id]), plainR(t.all.blocks[b.id]), b.target ?? '', st(targetState(b.target, t.all.blocks[b.id])), b.note, typeOf(m, b.cat).note]));
+  rows.push(['Passing', 'Passing', '', plainR(t.w[0].pass), plainR(t.w[1].pass), plainR(t.all.pass), '', '']);
   const F = flowTotals(m);
-  rows.push(['Transitions (count, not minutes)', 'Transitions', plainR(F.trans.w[0]), plainR(F.trans.w[1]), plainR(F.trans.all), '', '']);
-  rows.push(['Longest run of class blocks', 'Run', '', '', F.run.n ? `${F.run.n} blocks, ${F.run.span} min${F.run.partial ? ' (some lanes only)' : ''}` : 'None', '', '']);
+  rows.push(['Transitions (count, not minutes)', 'Transitions', '', plainR(F.trans.w[0]), plainR(F.trans.w[1]), plainR(F.trans.all), '', '']);
+  rows.push(['Longest run of class blocks', 'Run', '', '', '', F.run.n ? `${F.run.n} blocks, ${F.run.span} min${F.run.partial ? ' (some lanes only)' : ''}` : 'None', '', '']);
   return csv(rows);
 }
 function exportDlg() {
@@ -1999,6 +2122,29 @@ function cleanModel(raw, fromStorage = false) {
       else if (raw.blocks.some(b => b?.cat === vt.id)) ownType({ ...vt, len: commonLen(vt.id) ?? vt.len }, vt.len, vt.academic);
     });
   }
+  /* Student groups. A file from before version 3 has none, so it gets the four default grades and every block is for
+     all students. A combined group's members must be plain groups of this model, and a block's tags groups of it. */
+  const rawGroups = Array.isArray(raw.groups) ? raw.groups.filter(g => g && typeof g === 'object') : null;
+  const groups = [], gMap = new Map(); // group id in the input -> group id in the app
+  if (!rawGroups) DEFAULT_GROUPS.forEach(name => groups.push({ id: newId(null), name, grade: true }));
+  else {
+    limit(rawGroups.length, MAX.groups, 'student groups');
+    const pairs = rawGroups.slice(0, MAX.groups).map(g => {
+      const id = newId(g.id);
+      if (g.id != null && !gMap.has(String(g.id))) gMap.set(String(g.id), id);
+      const name = uniqueName(String(g.name ?? '').trim().slice(0, GROUP_NAME_MAX) || 'Group', [...groups.map(x => x.name), ALL_NAME]);
+      const out = Array.isArray(g.members) ? { id, name, members: [] } : { id, name, grade: g.grade === true };
+      groups.push(out);
+      return [g, out];
+    });
+    const plainIds = new Set(groups.filter(x => !isCombo(x)).map(x => x.id));
+    pairs.forEach(([g, out]) => {
+      if (!isCombo(out)) return;
+      const want = new Set(list(g.members).map(x => gMap.get(String(x))).filter(x => plainIds.has(x)));
+      out.members = groups.filter(x => want.has(x.id)).map(x => x.id);
+    });
+  }
+  const tagsOf = v => { const want = new Set(list(v).map(x => gMap.get(String(x)))); return groups.filter(g => want.has(g.id)).map(g => g.id); };
   const idMap = new Map(); // block id in the input -> block id in the app. A repeated id maps to its first block only.
   const blocks = raw.blocks.map((b, i) => {
     b = b && typeof b === 'object' ? b : {};
@@ -2007,7 +2153,7 @@ function cleanModel(raw, fromStorage = false) {
     return {
       id, name: String(b.name || `Block ${i + 1}`).slice(0, 60), cat: typeMap.get(String(b.cat)) ?? 'other',
       len: fit(b.len, LIM.len, 50), hue: HUES.includes(b.hue) ? b.hue : HUES[i % HUES.length], target: b.target == null ? null : posInt(b.target),
-      note: cleanNote(b.note),
+      note: cleanNote(b.note), groups: tagsOf(b.groups),
     };
   });
   const opt = (v, lim) => v == null ? null : fit(v, lim, lim[0]);
@@ -2027,7 +2173,7 @@ function cleanModel(raw, fromStorage = false) {
   return {
     id: fromStorage && safeId(raw.id) ? raw.id : uid(), name: String(raw.name || 'Imported model').slice(0, 80),
     passing: fit(raw.passing, LIM.pass, 5), defaultStart: fit(raw.defaultStart, LIM.start, 480),
-    classTarget: raw.classTarget == null ? null : posInt(raw.classTarget), types, blocks,
+    classTarget: raw.classTarget == null ? null : posInt(raw.classTarget), types, groups, blocks,
     days: raw.days.map(d => {
       limit(list(d?.items).length, MAX.items, 'blocks in one day');
       return { start: fit(d?.start, LIM.start, 480), items: list(d?.items).map(x => item(x, false)).filter(Boolean) };
