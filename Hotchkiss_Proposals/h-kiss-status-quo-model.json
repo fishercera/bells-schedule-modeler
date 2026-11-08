@@ -1,6 +1,6 @@
 {
  "app": "bell-schedule-modeler",
- "version": 2,
+ "version": 4,
  "models": [
   {
    "id": "xlbhrx37i",
@@ -45,6 +45,28 @@
      "note": ""
     }
    ],
+   "groups": [
+    {
+     "id": "x9ja7kw3e",
+     "name": "Prep",
+     "grade": true
+    },
+    {
+     "id": "xqtx2mmth",
+     "name": "LM",
+     "grade": true
+    },
+    {
+     "id": "xiizzp1a7",
+     "name": "UM",
+     "grade": true
+    },
+    {
+     "id": "x64kyez55",
+     "name": "Senior",
+     "grade": true
+    }
+   ],
    "blocks": [
     {
      "id": "xyslu3fds",
@@ -53,7 +75,9 @@
      "len": 45,
      "hue": 212,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xtsm34mfp",
@@ -62,7 +86,9 @@
      "len": 45,
      "hue": 158,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "x8nu899qr",
@@ -71,7 +97,9 @@
      "len": 45,
      "hue": 32,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xor73z7cp",
@@ -80,7 +108,9 @@
      "len": 45,
      "hue": 340,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xo3zn5do1",
@@ -89,7 +119,9 @@
      "len": 45,
      "hue": 268,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xfs3qsf82",
@@ -98,7 +130,9 @@
      "len": 40,
      "hue": 186,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "x0v1iq0sk",
@@ -107,7 +141,9 @@
      "len": 30,
      "hue": 52,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "x5o95zu9d",
@@ -116,7 +152,9 @@
      "len": 30,
      "hue": 95,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xe68z6rf8",
@@ -125,7 +163,9 @@
      "len": 30,
      "hue": 300,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xmzmmlmxb",
@@ -134,7 +174,9 @@
      "len": 30,
      "hue": 300,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xy0n4zudu",
@@ -143,7 +185,9 @@
      "len": 45,
      "hue": 12,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xupdm2nzb",
@@ -152,7 +196,9 @@
      "len": 45,
      "hue": 240,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "x3uexsa6n",
@@ -161,7 +207,9 @@
      "len": 45,
      "hue": 130,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xrg4rso0m",
@@ -170,7 +218,9 @@
      "len": 30,
      "hue": 158,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xnrbmecwy",
@@ -179,7 +229,9 @@
      "len": 30,
      "hue": 32,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xl5rvpczf",
@@ -188,7 +240,9 @@
      "len": 25,
      "hue": 300,
      "target": null,
-     "note": ""
+     "note": "",
+     "groups": [],
+     "limit": null
     }
    ],
    "days": [
