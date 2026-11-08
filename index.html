@@ -526,6 +526,21 @@ function normalizeModel(m, otherModelNames) {
   m.blocks.forEach((b, i) => { b.name = uniqueName(b.name, m.blocks.slice(0, i).map(x => x.name)); });
   return m;
 }
+/* The models someone starts with when nothing is saved in their browser yet. The published version carries its own
+   (build_artifact.py adds them to the page as JSON in #starter-models, plus samples: true for the two samples after
+   them); anywhere else, or if that JSON can't be read, it's the two samples. */
+function starterModels() {
+  const el = document.getElementById('starter-models');
+  if (el) {
+    try {
+      const data = JSON.parse(el.textContent);
+      const list = (Array.isArray(data?.models) ? data.models : []).map(raw => cleanModel(raw));
+      if (data?.samples) list.push(...sampleModels());
+      if (list.length) return list;
+    } catch (e) { /* use the samples */ }
+  }
+  return sampleModels();
+}
 function sampleModels() {
   const p = [1, 2, 3, 4, 5, 6, 7].map((n, i) => mkBlock(`Period ${n}`, 'class', 47, HUES[i], n === 1 ? 450 : n === 7 ? 470 : null));
   const lunch = mkBlock('Lunch', 'lunch', 30, HUES[9]);
@@ -889,7 +904,7 @@ function cleanFold(f) {
 let rightAuto = false, lastSelKey = '', quietSel = false;
 const saved = store.load(), loaded = loadModels(saved?.models);
 const S = {
-  models: loaded.models.length ? loaded.models : sampleModels(),
+  models: loaded.models.length ? loaded.models : starterModels(),
   activeId: saved?.activeId, view: 'schedule', unit: saved?.unit === 'hrs' ? 'hrs' : 'min', zoom: has(ZOOMS, saved?.zoom) ? saved.zoom : 'Normal',
   compare: Array.isArray(saved?.compare) ? saved.compare.filter(x => typeof x === 'string') : [], sel: null, gPeriod: 'all',
   // Which student groups Compare shows: 'all' (All students) or 'g:' plus a group's name in lower case.

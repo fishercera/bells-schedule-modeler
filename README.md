@@ -69,6 +69,20 @@ Some blocks repeat through the week, but each student is assigned to only some o
 - **PDF** (top bar) saves the current model's Week 1 and Week 2 as a two-page US Letter landscape PDF, laid out like the Schedule tab and showing the whole schedule. It shows each week's class time, passing and Free time, each day's class time and hours, and every block with its times, colors, split lanes and group or "1/wk" labels. The PDF maker (jsPDF) loads from cdnjs the first time, so it needs an internet connection. Characters outside its font, such as emoji, print as "?".
 - **Print** appears only on your own computer: a published claude.ai page can't open the print dialog. Use **PDF** there instead.
 
+## Published version
+
+The modeler is published as a claude.ai page: <https://claude.ai/artifact/VbB7uEsZZxXeVuoUnfYb13>. It's private until it is shared from the page's Share menu.
+
+- **Saving:** each person's schedules are saved in their own browser, as with `index.html`. Nobody sees anyone else's, and a private window or cleared site data starts over, so keep downloaded JSON files as backups. To share a model, download its JSON from Export and send it; the other person uses Import.
+- **Starting models:** someone opening it for the first time starts with the four Hotchkiss models, Deerfield, and the two built-in samples. People who have used it before keep their own saved models, even after an update; they can Import anything new.
+- **Downloads:** the page is published with the `downloads` capability, so Download and PDF work there through Claude's save prompt. Print is not available there.
+
+### Updating it
+
+1. Make the change in `index.html` (and the model files, if the starting models should change).
+2. Run `python build_artifact.py`. It writes `dist/bell-schedule-modeler.html` (the page to publish, without the outer page tags claude.ai adds itself) and `dist/preview.html` (the same page with those tags, to try on this computer). `dist/` is not kept in git.
+3. Republish `dist/bell-schedule-modeler.html` to the same link, keeping the `downloads` capability. Asking Claude Code to "republish the bell schedule modeler to its artifact" does this.
+
 ## Not in the repo
 
 `ScheduleDocs/` (the source PDFs and screenshots the peer-school models were built from) is kept locally and listed in `.gitignore`.
