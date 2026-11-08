@@ -1,0 +1,1543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bell Schedule Modeler</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout concept: a teacher's plan book. Two ruled week sheets in the middle, the block
+   tray on the left, the running minutes ledger on the right. */
+:root {
+  --paper: #edf2ef;  --sheet: #ffffff;  --sunk: #f5f8f6;
+  --ink: #15302a;    --muted: #54706a;  --rule: #d2dfd9;  --rule-strong: #b3c6be;
+  --accent: #0b6e4f; --accent-ink: #ffffff; --accent-soft: #d9efe5;
+  --warn: #b3261e;   --warn-soft: #fbe4e1;
+  --ok: #17693f;     --ok-soft: #dcf1e3;
+  --blk-s: 68%; --blk-l: 86%; --blk-edge-l: 40%; --blk-ink-l: 17%;
+  --hatch: #9db3ab;
+  --shadow: 0 6px 20px rgba(21, 48, 42, .22);
+  --f-display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0f1917;  --sheet: #17231f;  --sunk: #13201c;
+  --ink: #e3eeea;    --muted: #93aca5;  --rule: #2a3b36;  --rule-strong: #3f5650;
+  --accent: #4cc79a; --accent-ink: #06231a; --accent-soft: #173a2e;
+  --warn: #ff9d94;   --warn-soft: #472220;
+  --ok: #7fdca6;     --ok-soft: #173a29;
+  --blk-s: 42%; --blk-l: 27%; --blk-edge-l: 62%; --blk-ink-l: 92%;
+  --hatch: #4d645e;
+  --shadow: 0 6px 20px rgba(0, 0, 0, .5);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --paper: #0f1917;  --sheet: #17231f;  --sunk: #13201c;
+  --ink: #e3eeea;    --muted: #93aca5;  --rule: #2a3b36;  --rule-strong: #3f5650;
+  --accent: #4cc79a; --accent-ink: #06231a; --accent-soft: #173a2e;
+  --warn: #ff9d94;   --warn-soft: #472220;
+  --ok: #7fdca6;     --ok-soft: #173a29;
+  --blk-s: 42%; --blk-l: 27%; --blk-edge-l: 62%; --blk-ink-l: 92%;
+  --hatch: #4d645e;
+  --shadow: 0 6px 20px rgba(0, 0, 0, .5);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--paper); color: var(--ink);
+  font: 14px/1.4 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 32px;
+}
+h1, h2, h3, p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+
+/* Top bar */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-bottom: 12px; }
+.top h1 { font: 700 21px/1.1 var(--f-display); letter-spacing: -.01em; margin-right: 6px; }
+.top .spacer { flex: 1 1 auto; }
+.grp { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.btn {
+  border: 1px solid var(--rule-strong); background: var(--sheet); border-radius: 6px;
+  padding: 5px 10px; cursor: pointer; font-weight: 500; line-height: 1.3;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.danger { color: var(--warn); }
+.btn.sm { padding: 2px 7px; font-size: 12.5px; }
+select.pick, input.txt, select.txt, textarea.txt {
+  background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 6px; padding: 5px 7px; width: 100%;
+}
+select.pick { width: auto; max-width: 260px; font-weight: 600; }
+.tabs { display: flex; gap: 0; border: 1px solid var(--rule-strong); border-radius: 6px; overflow: hidden; }
+.tabs button { border: 0; background: var(--sheet); padding: 5px 12px; cursor: pointer; font-weight: 500; border-left: 1px solid var(--rule); }
+.tabs button:first-child { border-left: 0; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* Page frame */
+.frame { display: grid; grid-template-columns: 232px minmax(0, 1fr) 336px; gap: 14px; align-items: start; }
+.frame.wide { grid-template-columns: minmax(0, 1fr); }
+.side { position: sticky; top: 10px; max-height: calc(100vh - 20px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 11px 12px; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.panel h2 { font: 600 11.5px/1.2 var(--f-body); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.panelhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.field > label, .field > .lab { font-size: 12px; color: var(--muted); font-weight: 500; }
+.fieldrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hint { font-size: 12px; color: var(--muted); }
+.inline { display: flex; gap: 6px; align-items: center; }
+.inline .btn { white-space: nowrap; }
+::placeholder { color: var(--muted); opacity: .75; }
+.warnline { color: var(--warn); font-weight: 600; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 5px; }
+
+/* Block tray */
+.tray { display: flex; flex-direction: column; gap: 4px; }
+.chip {
+  --h: 200;
+  display: flex; align-items: center; gap: 6px; width: 100%; text-align: left;
+  background: hsl(var(--h) var(--blk-s) var(--blk-l)); color: hsl(var(--h) 40% var(--blk-ink-l));
+  border: 1px solid hsl(var(--h) 45% var(--blk-edge-l)); border-radius: 5px;
+  padding: 4px 7px; cursor: grab; user-select: none; touch-action: pan-y;
+}
+.chip[data-noncat] { border-style: dashed; }
+.chip.on { outline: 2px solid var(--accent); outline-offset: 1px; }
+.chip .nm { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip .ln { font: 500 12px var(--f-data); }
+
+/* Week sheets */
+.sheets { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.week { background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; min-width: 0; }
+.weekhead { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 8px 12px 6px; }
+.weekhead h2 { font: 700 16px/1.2 var(--f-display); }
+.weekhead .sum { color: var(--muted); }
+.weekhead .sum b { color: var(--ink); font-family: var(--f-data); font-weight: 500; }
+.weekhead .btn { margin-left: auto; }
+.gridscroll { overflow-x: auto; }
+.grid { display: grid; min-width: min-content; user-select: none; -webkit-user-select: none; }
+.dayhd {
+  border: 0; border-left: 1px solid var(--rule); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule-strong);
+  background: var(--sunk); padding: 4px 6px; text-align: left; cursor: pointer; min-width: 0;
+}
+.dayhd.on { background: var(--accent-soft); }
+.dayhd .d { font-weight: 700; display: block; }
+.dayhd .m { display: block; font: 400 11.5px var(--f-data); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.corner { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule-strong); }
+.axis { position: relative; }
+.axis span { position: absolute; right: 5px; transform: translateY(-50%); font: 400 11px var(--f-data); color: var(--muted); }
+.axis span:first-child { transform: none; }
+.daycol { position: relative; border-left: 1px solid var(--rule); background-repeat: repeat; min-width: 0; }
+.daycol.on { background-color: var(--accent-soft); }
+.daycol .empty { position: absolute; left: 0; right: 0; top: 10px; text-align: center; font-size: 11.5px; color: var(--muted); pointer-events: none; padding: 0 4px; }
+
+.blk {
+  --h: 200;
+  position: absolute; left: 3px; right: 3px; overflow: hidden; border-radius: 4px; cursor: grab;
+  background: hsl(var(--h) var(--blk-s) var(--blk-l)); color: hsl(var(--h) 40% var(--blk-ink-l));
+  border: 1px solid hsl(var(--h) 45% var(--blk-edge-l));
+  padding: 1px 5px; font-size: 12px; line-height: 1.2; touch-action: pan-y; z-index: 3;
+}
+.blk[data-noncat] { border-style: dashed; }
+.blk.on { outline: 2px solid var(--accent); outline-offset: 1px; z-index: 4; }
+.blk.lift { opacity: .35; }
+.blk .nm { font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.blk .tm { display: block; font: 400 10.5px var(--f-data); white-space: nowrap; overflow: hidden; }
+.blk .mod { font-family: var(--f-data); font-weight: 500; }
+.rz { position: absolute; left: 0; right: 0; height: 7px; cursor: ns-resize; touch-action: none; z-index: 2; }
+.rz.t { top: -1px; } .rz.b { bottom: -1px; }
+.blk:hover .rz.b, .blk.on .rz.b { border-bottom: 3px solid hsl(var(--h) 45% var(--blk-edge-l)); }
+.blk:hover .rz.t, .blk.on .rz.t { border-top: 3px solid hsl(var(--h) 45% var(--blk-edge-l)); }
+.gap {
+  position: absolute; left: 7px; right: 7px; cursor: ns-resize; z-index: 2; touch-action: none;
+  background: repeating-linear-gradient(135deg, var(--hatch) 0 1.5px, transparent 1.5px 5px);
+  display: flex; align-items: center; justify-content: center;
+  font: 400 10px var(--f-data); color: var(--muted);
+}
+.gap:hover { background-color: var(--accent-soft); }
+.gap.mod { background-color: var(--accent-soft); }
+.split { position: absolute; left: 2px; right: 2px; border: 1.5px solid var(--rule-strong); border-radius: 5px; background: var(--sunk); display: flex; z-index: 1; }
+.split.on { border-color: var(--accent); }
+.split.lift { opacity: .35; }
+.lane { position: relative; flex: 1 1 0; min-width: 0; border-left: 1px dashed var(--rule-strong); }
+.lane:first-of-type { border-left: 0; }
+.lane .blk { left: 1px; right: 1px; padding: 1px 3px; }
+.lane .gap { left: 3px; right: 3px; }
+.splittab {
+  position: absolute; top: -1px; right: -1px; z-index: 4; width: 18px; height: 14px; padding: 0; border: 0; border-radius: 0 4px 0 4px;
+  background: var(--rule-strong); color: var(--ink); cursor: grab; font: 700 10px/14px var(--f-data); text-align: center;
+}
+.split.on .splittab { background: var(--accent); color: var(--accent-ink); }
+#ghost { position: fixed; z-index: 50; pointer-events: none; left: 0; top: 0; padding: 4px 9px; border-radius: 5px; font-weight: 600; font-size: 12.5px; box-shadow: var(--shadow); background: var(--sheet); border: 1.5px solid var(--accent); white-space: nowrap; }
+#ghost small { display: block; font: 400 11px var(--f-data); color: var(--muted); }
+#dropline { position: fixed; z-index: 49; pointer-events: none; height: 3px; background: var(--accent); border-radius: 2px; }
+body.dragging, body.dragging * { cursor: grabbing !important; }
+body.sizing, body.sizing * { cursor: ns-resize !important; }
+
+/* Ledger */
+.stats { display: grid; grid-template-columns: 1fr 1fr 1.25fr; gap: 6px; }
+.stat { background: var(--sunk); border-radius: 6px; padding: 6px 8px; min-width: 0; }
+.stat .k { font-size: 11.5px; color: var(--muted); display: block; }
+.stat .v { font: 700 21px/1.15 var(--f-display); font-variant-numeric: tabular-nums; display: block; white-space: nowrap; }
+.stat .v.rng { white-space: normal; }
+.stat.main { background: var(--accent-soft); }
+.pill { display: inline-block; border-radius: 99px; padding: 1px 7px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.pill.short { background: var(--warn-soft); color: var(--warn); }
+.pill.met { background: var(--ok-soft); color: var(--ok); }
+.ledger { width: 100%; border-collapse: collapse; }
+.ledger th, .ledger td { padding: 3px 0 3px 8px; text-align: right; font-size: 12.5px; }
+.ledger th:first-child, .ledger td:first-child { text-align: left; padding-left: 0; overflow-wrap: anywhere; }
+.ledger thead th { font-size: 11.5px; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--rule-strong); }
+.ledger tr.cat td { font-size: 11.5px; font-weight: 600; color: var(--muted); padding-top: 8px; text-transform: uppercase; letter-spacing: .05em; }
+.ledger tr.line td { border-bottom: 1px solid var(--rule); }
+.ledger tr.sub td { font-weight: 700; }
+.ledger td.n { font-family: var(--f-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dot { --h: 200; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; background: hsl(var(--h) 55% 50%); }
+.meter { height: 4px; background: var(--rule); border-radius: 2px; overflow: hidden; margin-top: 2px; }
+.meter i { display: block; height: 100%; background: var(--ok); }
+.meter.short i { background: var(--warn); }
+.lanemark { color: var(--muted); font-size: 11px; cursor: help; }
+.tgt { display: flex; justify-content: space-between; gap: 6px; align-items: center; font-size: 11.5px; color: var(--muted); padding-top: 1px; }
+
+/* Length table and compare */
+.tablewrap { overflow-x: auto; background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; }
+.lt { border-collapse: separate; border-spacing: 0; width: 100%; }
+.lt th, .lt td { padding: 4px 5px; border-bottom: 1px solid var(--rule); text-align: center; font-size: 12.5px; white-space: nowrap; }
+.lt thead th { background: var(--sunk); font-weight: 600; }
+.lt .wkstart { border-left: 2px solid var(--rule-strong); }
+.lt .stick { position: sticky; left: 0; background: var(--sheet); text-align: left; z-index: 1; font-weight: 600; }
+.lt thead .stick { background: var(--sunk); }
+.lt input { width: 46px; text-align: center; padding: 3px 2px; border: 1px solid transparent; border-radius: 4px; background: transparent; font-family: var(--f-data); font-size: 12.5px; }
+.lt input:hover, .lt input:focus { border-color: var(--rule-strong); background: var(--sheet); }
+.lt input.diff { background: var(--accent-soft); font-weight: 500; }
+.lt .fixed { font-family: var(--f-data); color: var(--muted); }
+.note { color: var(--muted); padding: 10px 2px; max-width: 70ch; }
+.cmp { display: flex; flex-direction: column; gap: 12px; }
+.pickrow { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.pickrow label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+.minis { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.mini { background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 9px 11px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.mini h3 { font: 700 14px/1.2 var(--f-display); }
+.strip { position: relative; height: 130px; display: grid; grid-template-columns: repeat(7, 1fr) 8px repeat(7, 1fr); gap: 2px; }
+.strip .col { position: relative; background: var(--sunk); border-radius: 2px; overflow: hidden; }
+.strip .col i { position: absolute; --h: 200; background: hsl(var(--h) 55% 55%); border-radius: 1px; }
+.striplabs { display: grid; grid-template-columns: repeat(7, 1fr) 8px repeat(7, 1fr); gap: 2px; font: 400 9.5px var(--f-data); color: var(--muted); text-align: center; }
+.delta { font-size: 11.5px; display: block; color: var(--muted); }
+.delta.up { color: var(--ok); } .delta.down { color: var(--warn); }
+
+/* Dialog and toast */
+dialog { border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--sheet); color: var(--ink); padding: 16px; width: min(520px, calc(100vw - 32px)); box-shadow: var(--shadow); }
+dialog::backdrop { background: rgba(10, 25, 20, .45); }
+dialog form, .dlg { display: flex; flex-direction: column; gap: 10px; }
+dialog h2 { font: 700 18px/1.2 var(--f-display); }
+dialog textarea { min-height: 200px; font: 12px/1.4 var(--f-data); resize: vertical; }
+.dlgbtns { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+.err { color: var(--warn); font-size: 12.5px; }
+#toast { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); padding: 7px 14px; border-radius: 7px; font-weight: 500; box-shadow: var(--shadow); max-width: calc(100vw - 32px); }
+
+@media (max-width: 1180px) {
+  .frame { grid-template-columns: 210px minmax(0, 1fr); }
+  /* The right panels sit under the calendar in the second column only. The block list stays pinned in the
+     first column as you scroll, so it must have that column to itself or it covers the panels. */
+  .right { grid-column: 2; position: static; max-height: none; flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+  .right > .panel { flex: 1 1 320px; }
+}
+@media (max-width: 760px) {
+  .frame { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; max-height: none; }
+  .right { order: -1; grid-column: 1; }
+}
+@media (prefers-reduced-motion: no-preference) { .btn, .tabs button { transition: border-color .12s, background-color .12s; } }
+@media print {
+  body { background: #fff; padding: 0; }
+  .top .grp, .top .tabs, .top .spacer, .left, .insp, .weekhead .btn, #toast { display: none !important; }
+  .frame { display: block; }
+  .side { position: static; max-height: none; }
+  .week { break-inside: avoid; border: 0; }
+  .gridscroll { overflow: visible; }
+  .blk, .chip, .dot, .meter i { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Bell Schedule Modeler</h1>
+  <div class="grp">
+    <select id="modelPick" class="pick" aria-label="Schedule model"></select>
+    <button class="btn" data-act="newModel">New</button>
+    <button class="btn" data-act="dupModel">Duplicate</button>
+    <button class="btn danger" data-act="delModel">Delete</button>
+  </div>
+  <div class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-act="view" data-v="schedule">Schedule</button>
+    <button role="tab" data-act="view" data-v="lengths">Length table</button>
+    <button role="tab" data-act="view" data-v="compare">Compare</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="grp">
+    <button class="btn" data-act="undo" id="undoBtn" title="Undo (Ctrl+Z)">Undo</button>
+    <button class="btn" data-act="redo" id="redoBtn" title="Redo (Ctrl+Y)">Redo</button>
+    <button class="btn" data-act="exportDlg">Export</button>
+    <button class="btn" data-act="importDlg">Import</button>
+    <button class="btn" data-act="print" id="printBtn" hidden>Print</button>
+  </div>
+</header>
+<main class="frame" id="frame">
+  <aside class="side left" id="left"></aside>
+  <section class="sheets" id="center"></section>
+  <aside class="side right" id="right"></aside>
+</main>
+<dialog id="dlg"></dialog>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<div id="ghost" hidden></div>
+<div id="dropline" hidden></div>
+
+<script>
+'use strict';
+/* ---------- Constants ---------- */
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const CATS = { class: 'Class', advisory: 'Advisory', lunch: 'Lunch', break: 'Break', other: 'Other' };
+const HUES = [212, 158, 32, 340, 268, 186, 95, 12, 240, 52, 300, 130];
+const SNAP = 5, MIN_LEN = 5, MAX_LANES = 4;
+/* Allowed ranges, in minutes. Every way a number gets in (typing, dragging, import, saved data)
+   goes through these, so no value can make the calendar too large to draw. */
+const LIM = { len: [MIN_LEN, 600], pass: [0, 60], gap: [0, 480], start: [0, 1439] };
+/* Import limits, far above any real schedule, so a crafted file can't stall the page. */
+const MAX = { models: 100, blocks: 100, items: 60, laneItems: 30 };
+const ZOOMS = { Compact: 0.85, Normal: 1.15, Large: 1.6 };
+const IS_LOCAL = /^(file:|https?:\/\/(localhost|127\.0\.0\.1|\[::1\]))/.test(location.href);
+
+/* ---------- Storage: the one place that reads and writes saved models.
+   Replace these two functions to move from browser storage to a shared library. ---------- */
+const store = {
+  key: 'bell-schedule-modeler.v1',
+  load() { try { return JSON.parse(localStorage.getItem(this.key)); } catch (e) { return null; } },
+  save(data) { try { localStorage.setItem(this.key, JSON.stringify(data)); return true; } catch (e) { return false; } },
+  // Calls fn with the saved data whenever another tab or window of this app saves.
+  watch(fn) {
+    window.addEventListener('storage', e => {
+      if (e.key !== this.key || e.newValue == null) return;
+      let data; try { data = JSON.parse(e.newValue); } catch (err) { return; }
+      fn(data);
+    });
+  },
+};
+
+/* ---------- Small helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const uid = () => 'x' + Math.random().toString(36).slice(2, 10);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const snap = v => Math.round(v / SNAP) * SNAP;
+const clone = o => JSON.parse(JSON.stringify(o));
+const dayName = d => `${DAYS[d % 7]} W${d < 7 ? 1 : 2}`;
+const clock = t => { const h = Math.floor(t / 60), m = ((t % 60) + 60) % 60; return `${h % 12 || 12}:${String(m).padStart(2, '0')}`; };
+const hhmm = t => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+const parseTime = s => { const m = /^(\d{1,2}):(\d{2})/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : null; };
+const posInt = (v, fallback = null) => { const n = Math.round(Number(v)); return v !== '' && Number.isFinite(n) && n >= 0 ? n : fallback; };
+// A whole number inside [lo, hi], or null.
+const within = (v, [lo, hi]) => { const n = posInt(v); return n != null && n >= lo && n <= hi ? n : null; };
+const fit = (v, [lo, hi], fallback) => clamp(posInt(v, fallback), lo, hi);
+const rangeMsg = (what, [lo, hi]) => `${what} must be from ${lo} to ${hi} minutes.`;
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+// Totals are keyed by block id and type; a prototype-free object keeps keys like "__proto__" harmless.
+const bag = () => Object.create(null);
+// Ids end up in HTML attributes and CSS selectors, so only plain characters are kept.
+const safeId = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(v);
+
+/* ---------- Model construction ---------- */
+const mkBlock = (name, cat, len, hue, target = null) => ({ id: uid(), name, cat, len, hue, target });
+const mkItem = (blockId, dur = null, gap = null) => ({ id: uid(), t: 'b', blockId, dur, gap });
+const mkSplit = (lanes, gap = null) => ({ id: uid(), t: 's', gap, lanes });
+const emptyDays = start => Array.from({ length: 14 }, () => ({ start, items: [] }));
+function mkModel(name, blocks, opts = {}) {
+  return { id: uid(), name, passing: opts.passing ?? 5, defaultStart: opts.start ?? 480, blockLen: opts.len ?? 50, classTarget: opts.classTarget ?? null, blocks: [...blocks], days: emptyDays(opts.start ?? 480) };
+}
+/* Names are compared without case or surrounding spaces. A taken name gets a number added. */
+const nameKey = s => String(s).trim().toLowerCase();
+function uniqueName(name, others) {
+  name = String(name).trim();
+  const taken = new Set(others.map(nameKey));
+  if (!taken.has(nameKey(name))) return name;
+  const num = /^(.*?)\s+\((\d+)\)$/.exec(name);
+  const base = num ? num[1] : name;
+  let i = num ? +num[2] + 1 : 2;
+  while (taken.has(nameKey(`${base} (${i})`))) i++;
+  return `${base} (${i})`;
+}
+const modelNames = exceptId => S.models.filter(m => m.id !== exceptId).map(m => m.name);
+const blockNames = (m, exceptId) => m.blocks.filter(b => b.id !== exceptId).map(b => b.name);
+// Models saved before the model-wide default existed take their most common class length.
+function guessLen(m) {
+  const counts = {};
+  m.blocks.filter(b => b.cat === 'class').forEach(b => { counts[b.len] = (counts[b.len] || 0) + 1; });
+  const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return best ? +best[0] : 50;
+}
+function normalizeModel(m, otherModelNames) {
+  if (!(m.blockLen >= MIN_LEN)) m.blockLen = guessLen(m);
+  m.name = uniqueName(m.name, otherModelNames);
+  m.blocks.forEach((b, i) => { b.name = uniqueName(b.name, m.blocks.slice(0, i).map(x => x.name)); });
+  return m;
+}
+function sampleModels() {
+  const p = [1, 2, 3, 4, 5, 6, 7].map((n, i) => mkBlock(`Period ${n}`, 'class', 47, HUES[i], n === 1 ? 450 : n === 7 ? 470 : null));
+  const lunch = mkBlock('Lunch', 'lunch', 30, HUES[9]);
+  const adv = mkBlock('Advisory', 'advisory', 25, HUES[10]);
+  const a = mkModel('Sample: seven periods', [...p, lunch, adv], { classTarget: 3150, len: 47 });
+  for (const w of [0, 7]) for (const i of [1, 2, 3, 4, 5]) {
+    const day = a.days[w + i];
+    if (i === 3) { // Late-start Wednesday with shorter periods
+      day.start = 540;
+      day.items = [mkItem(p[0].id, 40), mkItem(p[1].id, 40), mkItem(p[2].id, 40), mkItem(adv.id), mkItem(lunch.id), mkItem(p[3].id, 40), mkItem(p[4].id, 40), mkItem(p[5].id, 40), mkItem(p[6].id, 40)];
+    } else {
+      day.items = [p[0], p[1], p[2], p[3], lunch, p[4], p[5], p[6]].map(b => mkItem(b.id));
+    }
+  }
+  const letters = 'ABCDEFGH'.split('');
+  const bl = letters.map((l, i) => mkBlock(`Block ${l}`, 'class', 85, HUES[i]));
+  const la = mkBlock('Lunch A', 'lunch', 30, HUES[9]), lb = mkBlock('Lunch B', 'lunch', 30, HUES[11]);
+  const b = mkModel('Sample: A/B block rotation', [...bl, la, lb], { classTarget: 3000, len: 85 });
+  const dayOf = (x, y, z, q) => [mkItem(x.id), mkItem(y.id),
+    mkSplit([[mkItem(la.id), mkItem(z.id)], [mkItem(z.id), mkItem(lb.id)]]), mkItem(q.id)];
+  [1, 2, 3, 4, 5].forEach(i => {
+    const first = i % 2 === 1;
+    b.days[i].items = first ? dayOf(bl[0], bl[1], bl[2], bl[3]) : dayOf(bl[4], bl[5], bl[6], bl[7]);
+    b.days[i + 7].items = first ? dayOf(bl[4], bl[5], bl[6], bl[7]) : dayOf(bl[0], bl[1], bl[2], bl[3]);
+  });
+  return [a, b];
+}
+
+/* ---------- Schedule math (pure) ---------- */
+const blockOf = (m, id) => m.blocks.find(b => b.id === id);
+const seqLen = (m, items, top) => { const L = layoutSeq(m, items, 0, top); return L.length ? L[L.length - 1].end : 0; };
+function durOf(m, it) {
+  if (it.t === 's') return Math.max(0, ...it.lanes.map(l => seqLen(m, l, false)));
+  const b = blockOf(m, it.blockId);
+  return it.dur ?? (b ? b.len : 0);
+}
+function gapOf(m, it, idx, top) {
+  if (idx === 0) return top ? 0 : (it.gap ?? 0);
+  return it.gap ?? m.passing;
+}
+function layoutSeq(m, items, t0, top) {
+  let t = t0;
+  return items.map((it, i) => {
+    const gap = gapOf(m, it, i, top), start = t + gap, end = start + durOf(m, it);
+    t = end;
+    return { it, gap, start, end };
+  });
+}
+const R = () => ({ lo: 0, hi: 0 });
+const addTo = (map, k, lo, hi) => { const r = map[k] || (map[k] = R()); r.lo += lo; r.hi += hi; };
+function seqStats(m, items, top) {
+  const s = { blocks: bag(), cats: bag(), pass: R() };
+  items.forEach((it, i) => {
+    const g = gapOf(m, it, i, top);
+    s.pass.lo += g; s.pass.hi += g;
+    if (it.t === 'b') {
+      const b = blockOf(m, it.blockId);
+      if (!b) return;
+      const d = durOf(m, it);
+      addTo(s.blocks, b.id, d, d); addTo(s.cats, b.cat, d, d);
+      return;
+    }
+    // A split is simultaneous: a person is in one lane, so lanes never add together.
+    const L = it.lanes.map(l => seqStats(m, l, false));
+    const ids = new Set(L.flatMap(x => Object.keys(x.blocks)));
+    ids.forEach(id => {
+      const having = L.filter(x => x.blocks[id]);
+      addTo(s.blocks, id, Math.min(...having.map(x => x.blocks[id].lo)), Math.max(...having.map(x => x.blocks[id].hi)));
+    });
+    const cats = new Set(L.flatMap(x => Object.keys(x.cats)));
+    cats.forEach(c => {
+      addTo(s.cats, c, Math.min(...L.map(x => x.cats[c]?.lo ?? 0)), Math.max(...L.map(x => x.cats[c]?.hi ?? 0)));
+    });
+    s.pass.lo += Math.min(...L.map(x => x.pass.lo));
+    s.pass.hi += Math.max(...L.map(x => x.pass.hi));
+  });
+  return s;
+}
+const dayStats = (m, d) => seqStats(m, m.days[d].items, true);
+function totals(m) {
+  const part = () => ({ blocks: bag(), cats: bag(), pass: R() });
+  const t = { w: [part(), part()], all: part() };
+  m.days.forEach((_, d) => {
+    const s = dayStats(m, d);
+    for (const tgt of [t.w[d < 7 ? 0 : 1], t.all]) {
+      for (const k in s.blocks) addTo(tgt.blocks, k, s.blocks[k].lo, s.blocks[k].hi);
+      for (const k in s.cats) addTo(tgt.cats, k, s.cats[k].lo, s.cats[k].hi);
+      tgt.pass.lo += s.pass.lo; tgt.pass.hi += s.pass.hi;
+    }
+  });
+  return t;
+}
+/* Targets are judged on the lowest possible total. For a type (all class time) a lane without that type
+   counts as 0, so a split can't hide a shortfall there. For a single block, only the lanes that contain it
+   count, because lanes often hold alternatives ("F or Lunch" / "Lunch or G": each student takes one of F
+   or G). So a block's total is for the students who have it; someLaneBlocks() lets the ledger say so. */
+function targetState(target, r) {
+  if (target == null) return null;
+  const got = r ? r.lo : 0;
+  return { target, got, short: Math.max(0, target - got), met: got >= target, pct: target ? clamp(got / target * 100, 0, 100) : 100 };
+}
+// Blocks that sit in some lanes of a split but not in the others.
+function someLaneBlocks(m) {
+  const out = new Set();
+  m.days.forEach(day => day.items.forEach(it => {
+    if (it.t !== 's') return;
+    const sets = it.lanes.map(l => new Set(l.filter(x => x.t === 'b').map(x => x.blockId)));
+    sets.forEach(s => s.forEach(id => { if (sets.some(o => !o.has(id))) out.add(id); }));
+  }));
+  return out;
+}
+function shortfalls(m, t = totals(m)) {
+  const out = [];
+  const c = targetState(m.classTarget, t.all.cats.class);
+  if (c && !c.met) out.push('Class time');
+  m.blocks.forEach(b => { const s = targetState(b.target, t.all.blocks[b.id]); if (s && !s.met) out.push(b.name); });
+  return out;
+}
+function gridRange(m) {
+  let lo = 450, hi = 930;
+  m.days.forEach(d => { if (d.items.length) { const L = layoutSeq(m, d.items, d.start, true); lo = Math.min(lo, d.start); hi = Math.max(hi, L[L.length - 1].end); } });
+  return { lo: Math.floor(lo / 60) * 60, hi: Math.ceil((hi + 10) / 60) * 60 };
+}
+function walkItems(m, fn) {
+  m.days.forEach((day, d) => day.items.forEach((it, idx) => {
+    fn(it, { d, seq: day.items, idx, split: null, lane: null, top: true });
+    if (it.t === 's') it.lanes.forEach((l, li) => l.forEach((x, xi) => fn(x, { d, seq: l, idx: xi, split: it, lane: li, top: false })));
+  }));
+}
+function findItem(m, id) { let r = null; walkItems(m, (it, ctx) => { if (it.id === id) r = { it, ...ctx }; }); return r; }
+function placements(m, blockId, d) {
+  const out = [];
+  walkItems(m, (it, ctx) => { if (it.t === 'b' && it.blockId === blockId && (d == null || ctx.d === d)) out.push({ it, ...ctx }); });
+  return out;
+}
+function reId(it) {
+  const c = clone(it); c.id = uid();
+  if (c.t === 's') c.lanes = c.lanes.map(l => l.map(reId));
+  return c;
+}
+
+/* ---------- App state ---------- */
+const saved = store.load(), loaded = loadModels(saved?.models);
+const S = {
+  models: loaded.models.length ? loaded.models : sampleModels(),
+  activeId: saved?.activeId, view: 'schedule', unit: saved?.unit === 'hrs' ? 'hrs' : 'min', zoom: has(ZOOMS, saved?.zoom) ? saved.zoom : 'Normal',
+  compare: Array.isArray(saved?.compare) ? saved.compare.filter(x => typeof x === 'string') : [], sel: null,
+};
+S.models.forEach((m, i) => normalizeModel(m, S.models.slice(0, i).map(x => x.name)));
+if (!S.models.some(m => m.id === S.activeId)) S.activeId = S.models[0].id;
+if (!S.compare.length) S.compare = S.models.slice(0, 2).map(m => m.id);
+const M = () => S.models.find(m => m.id === S.activeId);
+const ppm = () => ZOOMS[S.zoom] || ZOOMS.Normal;
+let undoStack = [], redoStack = [], saveFailed = false;
+function persist() {
+  const ok = store.save({ models: S.models, activeId: S.activeId, unit: S.unit, zoom: S.zoom, compare: S.compare });
+  if (!ok && !saveFailed) { saveFailed = true; toast('This browser is not saving changes. Use Export to keep your work.'); }
+}
+/* Two tabs used to overwrite each other: each saved its own full copy, so the last one to save erased the
+   other's work. Every edit is saved at once, so another tab's save is always the newest copy; this tab takes
+   it, and its next save then includes both. This tab keeps its own chosen model, view and units. */
+store.watch(data => {
+  if (!Array.isArray(data?.models) || JSON.stringify(data.models) === JSON.stringify(S.models)) return; // nothing new
+  const got = loadModels(data.models);
+  if (!got.models.length) return;
+  if (P) { P = null; ghost.hidden = true; dropline.hidden = true; document.body.classList.remove('dragging', 'sizing'); }
+  S.models = got.models;
+  S.models.forEach((m, i) => normalizeModel(m, S.models.slice(0, i).map(x => x.name)));
+  if (!S.models.some(m => m.id === S.activeId)) S.activeId = S.models[0].id;
+  if (Array.isArray(data.compare)) S.compare = data.compare.filter(x => typeof x === 'string');
+  // Undo steps hold whole copies of a model from before the other tab's edit, so they would undo that edit too.
+  undoStack = []; redoStack = [];
+  renderKeepFocus();
+  toast('Loaded changes saved in another tab. Undo starts over from here.');
+});
+function snapshot() { return { id: S.activeId, json: JSON.stringify(M()) }; }
+function pushUndo(s) { undoStack.push(s); if (undoStack.length > 100) undoStack.shift(); redoStack = []; }
+// Draws before saving, so a state that can't be drawn is never saved and a reload gets back the last good one.
+function commit(fn) { const s = snapshot(); fn(M()); tidy(M()); if (s.json !== JSON.stringify(M())) pushUndo(s); renderKeepFocus(); persist(); }
+function restore(from, to) {
+  const s = from.pop(); if (!s) return;
+  const i = S.models.findIndex(m => m.id === s.id); if (i < 0) return;
+  to.push({ id: s.id, json: JSON.stringify(S.models[i]) });
+  S.models[i] = JSON.parse(s.json); S.activeId = s.id;
+  if (S.sel?.kind === 'item' && !findItem(M(), S.sel.id)) S.sel = null;
+  if (S.sel?.kind === 'block' && !blockOf(M(), S.sel.id)) S.sel = null;
+  persist(); render();
+}
+let toastTimer;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200); }
+
+/* ---------- Number display ---------- */
+function fmt(v) {
+  if (S.unit === 'hrs') return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
+  return v.toLocaleString('en-US');
+}
+const fmtR = r => !r ? fmt(0) : r.lo === r.hi ? fmt(r.lo) : `${fmt(r.lo)}–${fmt(r.hi)}`;
+const unitLabel = () => S.unit === 'hrs' ? 'h:mm' : 'min';
+
+/* ---------- Rendering ---------- */
+function render() { dropStaleSel(); renderTop(); renderLeft(); renderCenter(); renderRight(); }
+// An edit can remove what was selected (Copy Week 1 here replaces Week 2, say). A selection that points at nothing
+// would make the next Delete or arrow key fail, so it is cleared on every redraw.
+function dropStaleSel() {
+  const m = M(), s = S.sel;
+  if (!s) return;
+  if ((s.kind === 'item' && !findItem(m, s.id)) || (s.kind === 'block' && !blockOf(m, s.id)) || (s.kind === 'day' && !m.days[s.d])) S.sel = null;
+}
+/* Redrawing replaces the panels, which would drop keyboard focus (Tab would land nowhere).
+   This finds the focused field or button again by its id or data attributes and refocuses it. */
+function focusKey(el) {
+  if (!el || el === document.body || !document.contains(el)) return null;
+  if (el.id) return `#${CSS.escape(el.id)}`;
+  const attrs = Object.keys(el.dataset).map(k => `[data-${k.replace(/[A-Z]/g, c => '-' + c.toLowerCase())}="${CSS.escape(el.dataset[k])}"]`).join('');
+  return attrs ? el.tagName.toLowerCase() + attrs : null;
+}
+function renderKeepFocus() {
+  const a = document.activeElement, key = focusKey(a), sel = a && a.type === 'text' ? [a.selectionStart, a.selectionEnd] : null;
+  render();
+  const n = key && document.querySelector(key);
+  if (n && n !== document.activeElement) { n.focus({ preventScroll: true }); if (sel && n.type === 'text') n.setSelectionRange(...sel); }
+}
+let renderQueued = false;
+function queueRender() {
+  if (renderQueued) return; renderQueued = true;
+  setTimeout(() => { renderQueued = false; renderKeepFocus(); }, 0);
+}
+function renderTop() {
+  $('#modelPick').innerHTML = S.models.map(m => `<option value="${esc(m.id)}"${m.id === S.activeId ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
+  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.v === S.view));
+  $('#undoBtn').disabled = !undoStack.length; $('#redoBtn').disabled = !redoStack.length;
+  $('#printBtn').hidden = !IS_LOCAL;
+  $('#frame').classList.toggle('wide', S.view !== 'schedule');
+  $('#left').hidden = $('#right').hidden = S.view !== 'schedule';
+}
+function renderLeft() {
+  if (S.view !== 'schedule') return;
+  const m = M(), usedIn = id => placements(m, id).length;
+  $('#left').innerHTML = `
+  <div class="panel">
+    <div class="panelhead"><h2>Blocks</h2><button class="btn sm" data-act="addBlock">Add</button></div>
+    <div class="field"><label for="blockCount">Number of blocks</label>
+      <input class="txt num" id="blockCount" type="number" min="1" max="40" value="${m.blocks.length}" data-f="blockCount"></div>
+    <p class="hint">Drag a block onto a day. Click one to rename it or set its length.</p>
+    <div class="tray">${m.blocks.map(b => `
+      <div class="chip${S.sel?.kind === 'block' && S.sel.id === b.id ? ' on' : ''}" style="--h:${b.hue}" ${b.cat !== 'class' ? 'data-noncat' : ''}
+        data-pal="${esc(b.id)}" role="button" tabindex="0" title="${esc(b.name)}: ${CATS[b.cat]}, placed ${usedIn(b.id)} times">
+        <span class="nm">${esc(b.name)}</span><span class="ln">${b.len}m</span></div>`).join('')}</div>
+  </div>
+  <div class="panel">
+    <h2>Model settings</h2>
+    <div class="field"><label for="mName">Model name</label><input class="txt" id="mName" maxlength="80" value="${esc(m.name)}" data-f="mName"></div>
+    <div class="fieldrow">
+      <div class="field"><label for="mPass">Passing (min)</label><input class="txt num" id="mPass" type="number" min="0" max="60" value="${m.passing}" data-f="mPass"></div>
+      <div class="field"><label for="mStart">Day starts</label><input class="txt num" id="mStart" type="time" step="300" value="${hhmm(m.defaultStart)}" data-f="mStart"></div>
+    </div>
+    <div class="field"><label for="mLen">Default block length (min)</label>
+      <div class="inline"><input class="txt num" id="mLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${m.blockLen}" data-f="mLen">
+      <button class="btn sm" data-act="applyLenDlg">Apply to all…</button></div>
+      <p class="hint">New blocks start at this length.</p></div>
+    <div class="field"><label for="mTarget">Class time target, two-week total (min)</label>
+      <input class="txt num" id="mTarget" type="number" min="0" placeholder="None" value="${m.classTarget ?? ''}" data-f="mTarget"></div>
+    <div class="field"><label for="zoom">Calendar size</label>
+      <select class="txt" id="zoom" data-f="zoom">${Object.keys(ZOOMS).map(z => `<option${z === S.zoom ? ' selected' : ''}>${z}</option>`).join('')}</select></div>
+  </div>`;
+}
+function renderCenter() {
+  const c = $('#center');
+  const scrolls = [...c.querySelectorAll('.gridscroll')].map(e => e.scrollLeft);
+  if (S.view === 'schedule') renderGrid(c);
+  else if (S.view === 'lengths') renderLengths(c);
+  else renderCompare(c);
+  c.querySelectorAll('.gridscroll').forEach((e, i) => { e.scrollLeft = scrolls[i] || 0; });
+}
+function renderGrid(c) {
+  const m = M(), { lo, hi } = gridRange(m), t = totals(m);
+  c.innerHTML = [0, 1].map(w => weekHTML(m, w, lo, hi, t)).join('');
+}
+function weekHTML(m, w, lo, hi, t) {
+  const k = ppm(), H = (hi - lo) * k, hourPx = 60 * k;
+  const ds = [0, 1, 2, 3, 4, 5, 6].map(i => w * 7 + i);
+  const cols = ds.map((d, i) => (!m.days[d].items.length && (i === 0 || i === 6)) ? 'minmax(62px,.5fr)' : 'minmax(108px,1fr)').join(' ');
+  const hours = []; for (let h = lo; h <= hi; h += 60) if (h < hi) hours.push(`<span style="top:${(h - lo) * k}px">${h === lo ? '' : ''}${clock(h).replace(':00', '')}${h < 720 ? 'a' : 'p'}</span>`);
+  const lines = `background-image:linear-gradient(to bottom,var(--rule) 1px,transparent 1px),linear-gradient(to bottom,transparent ${hourPx / 2 - .5}px,var(--sunk) ${hourPx / 2 - .5}px,var(--sunk) ${hourPx / 2 + .5}px,transparent ${hourPx / 2 + .5}px);background-size:100% ${hourPx}px;`;
+  const heads = ds.map(d => {
+    const s = dayStats(m, d), has = m.days[d].items.length;
+    const L = has ? layoutSeq(m, m.days[d].items, m.days[d].start, true) : [];
+    const on = S.sel?.kind === 'day' && S.sel.d === d;
+    return `<button class="dayhd${on ? ' on' : ''}" data-act="selDay" data-d="${d}" title="${dayName(d)}: day settings">
+      <span class="d">${DAYS[d % 7]}</span>
+      <span class="m">${has ? `${fmtR(s.cats.class)} class` : 'No school'}</span>
+      ${has ? `<span class="m">${clock(m.days[d].start)}–${clock(L[L.length - 1].end)}</span>` : '<span class="m">&nbsp;</span>'}</button>`;
+  }).join('');
+  const colsHTML = ds.map(d => `<div class="daycol${S.sel?.kind === 'day' && S.sel.d === d ? ' on' : ''}" data-col="${d}" style="height:${H}px;${lines}">
+    ${m.days[d].items.length ? seqHTML(m, m.days[d].items, m.days[d].start, lo, true, d) : '<span class="empty">Drop blocks here</span>'}</div>`).join('');
+  return `<section class="week" aria-label="Week ${w + 1}">
+    <div class="weekhead"><h2>Week ${w + 1}</h2>
+      <span class="sum">Class time <b>${fmtR(t.w[w].cats.class)}</b> ${unitLabel()}</span>
+      <span class="sum">Passing <b>${fmtR(t.w[w].pass)}</b></span>
+      ${w === 1 ? '<button class="btn sm" data-act="copyWeek">Copy Week 1 here</button>' : ''}</div>
+    <div class="gridscroll"><div class="grid" style="grid-template-columns:44px ${cols}">
+      <div class="corner"></div>${heads}
+      <div class="axis" style="height:${H}px">${hours.join('')}</div>${colsHTML}
+    </div></div></section>`;
+}
+function seqHTML(m, items, t0, origin, top, d) {
+  const k = ppm();
+  return layoutSeq(m, items, t0, top).map(({ it, gap, start, end }, i) => {
+    let out = '';
+    if (i > 0 || gap > 0) {
+      const y = (start - gap - origin) * k, h = gap * k, hit = Math.max(h, 6);
+      const modified = it.gap != null && gap !== (i === 0 ? 0 : m.passing);
+      out += `<div class="gap${modified ? ' mod' : ''}" data-gapfor="${esc(it.id)}" style="top:${y - (hit - h) / 2}px;height:${hit}px" title="Passing: ${gap} min. Drag to resize.">${h >= 13 ? gap : ''}</div>`;
+    }
+    const top_ = (start - origin) * k, h = (end - start) * k;
+    if (it.t === 's') {
+      const on = S.sel?.kind === 'item' && S.sel.id === it.id;
+      out += `<div class="split${on ? ' on' : ''}" data-split="${esc(it.id)}" style="top:${top_}px;height:${h}px">
+        <button class="splittab" data-item="${esc(it.id)}" title="Split section: drag to move, click for options">≡</button>
+        ${it.lanes.map((l, li) => `<div class="lane" data-lane="${esc(it.id)}:${li}">${seqHTML(m, l, start, start, false, d)}</div>`).join('')}</div>`;
+    } else {
+      const b = blockOf(m, it.blockId);
+      if (b) {
+        const on = S.sel?.kind === 'item' && S.sel.id === it.id, mins = end - start, changed = it.dur != null && it.dur !== b.len;
+        out += `<div class="blk${on ? ' on' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px" ${b.cat !== 'class' ? 'data-noncat' : ''} data-item="${esc(it.id)}" tabindex="0" role="button"
+          aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes" title="${esc(b.name)} · ${clock(start)}–${clock(end)} · ${mins} min${changed ? ` (default ${b.len})` : ''}">
+          <span class="rz t" data-rz="t"></span>
+          <span class="nm">${esc(b.name)}</span>
+          ${h >= 30 ? `<span class="tm">${clock(start)}–${clock(end)}</span>` : ''}
+          ${h >= 42 ? `<span class="tm">${changed ? `<span class="mod">${mins}m*</span>` : `${mins}m`}</span>` : ''}
+          <span class="rz b" data-rz="b"></span></div>`;
+      }
+    }
+    return out;
+  }).join('');
+}
+function renderRight() {
+  if (S.view !== 'schedule') return;
+  $('#right').innerHTML = inspectorHTML() + ledgerHTML();
+}
+function ledgerHTML() {
+  const m = M(), t = totals(m), short = shortfalls(m, t), cls = targetState(m.classTarget, t.all.cats.class), partial = someLaneBlocks(m);
+  const row = (label, a, b, c) => `<td class="n">${fmtR(a)}</td><td class="n">${fmtR(b)}</td><td class="n">${fmtR(c)}</td>`;
+  const mark = '<span class="lanemark" title="In only some lanes of a split. This total counts the students in the lanes that have it." aria-label="in only some lanes">◐</span>';
+  const blockRows = cat => m.blocks.filter(b => b.cat === cat).map(b => {
+    const tg = targetState(b.target, t.all.blocks[b.id]);
+    return `<tr class="${tg ? '' : 'line'}"><td><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}${partial.has(b.id) ? ` ${mark}` : ''}</td>${row(b.name, t.w[0].blocks[b.id], t.w[1].blocks[b.id], t.all.blocks[b.id])}</tr>
+      ${tg ? `<tr class="line"><td colspan="4">${meterHTML(tg)}</td></tr>` : ''}`;
+  }).join('');
+  const cats = Object.keys(CATS).filter(c => m.blocks.some(b => b.cat === c));
+  return `<div class="panel" id="ledger">
+    <div class="panelhead"><h2>Class time</h2>
+      <div class="tabs" style="font-size:12px"><button data-act="unit" data-u="min" aria-selected="${S.unit === 'min'}" style="padding:1px 8px">min</button><button data-act="unit" data-u="hrs" aria-selected="${S.unit === 'hrs'}" style="padding:1px 8px">h:mm</button></div></div>
+    <div class="stats">
+      <div class="stat"><span class="k">Week 1</span>${tileR(t.w[0].cats.class)}</div>
+      <div class="stat"><span class="k">Week 2</span>${tileR(t.w[1].cats.class)}</div>
+      <div class="stat main"><span class="k">Two-week total</span>${tileR(t.all.cats.class)}</div>
+    </div>
+    ${cls ? meterHTML(cls) : ''}
+    ${short.length ? `<div><span class="pill short">${short.length} target${short.length > 1 ? 's' : ''} short</span> <span class="hint">${esc(short.join(', '))}</span></div>` : ''}
+    <table class="ledger"><thead><tr><th>Block</th><th>Wk 1</th><th>Wk 2</th><th>2-wk</th></tr></thead><tbody>
+    ${cats.map(c => `<tr class="cat"><td colspan="4">${CATS[c]}</td></tr>${blockRows(c)}
+      ${m.blocks.filter(b => b.cat === c).length > 1 ? `<tr class="sub line"><td>All ${CATS[c].toLowerCase()}</td>${row('', t.w[0].cats[c], t.w[1].cats[c], t.all.cats[c])}</tr>` : ''}`).join('')}
+    <tr class="cat"><td colspan="4">Passing</td></tr>
+    <tr class="line"><td>Passing time</td>${row('', t.w[0].pass, t.w[1].pass, t.all.pass)}</tr>
+    </tbody></table>
+    ${JSON.stringify(t.all).includes('"lo"') && hasRange(t) ? '<p class="hint">A range means the total depends on which lane someone is in. Targets use the lower number.</p>' : ''}
+    ${partial.size ? `<p class="hint">${mark} In only some lanes of a split. That block's total and target count only the students in the lanes that have it, so it can't be added to the other blocks to get the type total.</p>` : ''}
+  </div>`;
+}
+// A range is too wide for the small week boxes, so it may wrap after the dash instead of being cut off.
+const tileR = r => { const s = fmtR(r); return s.includes('–') ? `<span class="v rng">${s.replace('–', '–<wbr>')}</span>` : `<span class="v">${s}</span>`; };
+const hasRange = t => [...Object.values(t.all.blocks), ...Object.values(t.all.cats), t.all.pass].some(r => r.lo !== r.hi);
+function meterHTML(s) {
+  return `<div><div class="tgt"><span>Target ${fmt(s.target)} over two weeks</span>
+    <span class="pill ${s.met ? 'met' : 'short'}">${s.met ? 'Met' : `${fmt(s.short)} short`}</span></div>
+    <div class="meter${s.met ? '' : ' short'}"><i style="width:${s.pct}%"></i></div></div>`;
+}
+function inspectorHTML() {
+  const m = M(), sel = S.sel;
+  if (!sel) return '';
+  if (sel.kind === 'block') return blockInspector(m, blockOf(m, sel.id));
+  if (sel.kind === 'day') return dayInspector(m, sel.d);
+  const f = findItem(m, sel.id);
+  if (!f) return '';
+  return f.it.t === 's' ? splitInspector(m, f) : itemInspector(m, f);
+}
+const closeBtn = '<button class="btn sm" data-act="deselect" aria-label="Close">Close</button>';
+function blockInspector(m, b) {
+  if (!b) return '';
+  const n = placements(m, b.id).length;
+  return `<div class="panel insp"><div class="panelhead"><h2>Block</h2>${closeBtn}</div>
+    <div class="field"><label for="bName">Name</label><input class="txt" id="bName" maxlength="60" value="${esc(b.name)}" data-f="bName"></div>
+    <div class="fieldrow">
+      <div class="field"><label for="bCat">Type</label><select class="txt" id="bCat" data-f="bCat">${Object.entries(CATS).map(([k, v]) => `<option value="${k}"${k === b.cat ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+      <div class="field"><label for="bLen">Default length (min)</label><input class="txt num" id="bLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${b.len}" data-f="bLen"></div>
+    </div>
+    <div class="field"><label for="bTarget">Target, two-week total (min)</label><input class="txt num" id="bTarget" type="number" min="0" placeholder="None" value="${b.target ?? ''}" data-f="bTarget"></div>
+    <div class="field"><span class="lab">Color</span><div class="btnrow">${HUES.map(h => `<button class="chip" style="--h:${h};width:22px;height:22px;padding:0;cursor:pointer" data-act="hue" data-h="${h}" aria-label="Color ${h}"${h === b.hue ? ' aria-pressed="true"' : ''}>${h === b.hue ? '<span style="margin:auto">✓</span>' : ''}</button>`).join('')}</div></div>
+    <p class="hint">Placed ${n} time${n === 1 ? '' : 's'}. Changing the default updates every placement without its own length.</p>
+    <div class="btnrow"><button class="btn sm danger" data-act="delBlock">Delete block</button></div></div>`;
+}
+function dayInspector(m, d) {
+  const day = m.days[d];
+  return `<div class="panel insp"><div class="panelhead"><h2>${DAYS[d % 7]}, Week ${d < 7 ? 1 : 2}</h2>${closeBtn}</div>
+    <div class="fieldrow">
+      <div class="field"><label for="dStart">First bell</label><input class="txt num" id="dStart" type="time" step="300" value="${hhmm(day.start)}" data-f="dStart"></div>
+      <div class="field"><label for="dAdd">Add block</label><select class="txt" id="dAdd" data-f="dAdd"><option value="">Choose…</option>${m.blocks.map(b => `<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><span class="lab">Copy this day to</span>
+      ${[0, 1].map(w => `<div class="btnrow">${[0, 1, 2, 3, 4, 5, 6].map(i => { const t = w * 7 + i; return `<button class="btn sm" data-act="copyDay" data-d="${t}" ${t === d ? 'disabled' : ''} title="${dayName(t)}" style="min-width:38px;padding-inline:3px">${DAYS[i].slice(0, 2)}${i === 0 ? ` W${w + 1}` : ''}</button>`; }).join('')}</div>`).join('')}
+      <div class="btnrow"><button class="btn sm" data-act="copyDayWeekdays">All weekdays</button>
+      <button class="btn sm" data-act="copyDaySame">Same day, other week</button></div></div>
+    <div class="btnrow"><button class="btn sm danger" data-act="clearDay" ${day.items.length ? '' : 'disabled'}>Clear day</button></div></div>`;
+}
+function itemInspector(m, f) {
+  const b = blockOf(m, f.it.blockId), L = layoutSeq(m, f.seq, f.top ? m.days[f.d].start : layoutFor(m, f.split, f.d).start, f.top)[f.idx];
+  const dur = durOf(m, f.it), custom = f.it.dur != null && f.it.dur !== b.len;
+  const showGap = f.idx > 0 || !f.top;
+  return `<div class="panel insp"><div class="panelhead"><h2>${dayName(f.d)}${f.top ? '' : `, lane ${f.lane + 1}`}</h2>${closeBtn}</div>
+    <div class="field"><label for="iBlock">Block</label><select class="txt" id="iBlock" data-f="iBlock">${m.blocks.map(x => `<option value="${esc(x.id)}"${x.id === b.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+    <div class="fieldrow">
+      <div class="field"><label for="iStart">Starts</label><input class="txt num" id="iStart" type="time" step="300" value="${hhmm(L.start)}" data-f="iStart"></div>
+      <div class="field"><label for="iLen">Length (min)</label><input class="txt num" id="iLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${dur}" data-f="iLen"></div>
+    </div>
+    ${showGap ? `<div class="field"><label for="iGap">Passing before this block (min)</label><input class="txt num" id="iGap" type="number" min="0" max="${LIM.gap[1]}" step="1" value="${L.gap}" data-f="iGap"></div>` : ''}
+    <p class="hint">Ends ${clock(L.end)}. ${custom ? `This placement differs from the ${b.len} min default.` : `Using the ${b.len} min default.`}</p>
+    <div class="btnrow">
+      ${custom ? '<button class="btn sm" data-act="resetLen">Use default length</button>' : ''}
+      ${f.it.gap != null ? '<button class="btn sm" data-act="resetGap">Use default passing</button>' : ''}
+      <button class="btn sm" data-act="moveItem" data-dir="-1" ${f.idx === 0 ? 'disabled' : ''}>Earlier</button>
+      <button class="btn sm" data-act="moveItem" data-dir="1" ${f.idx === f.seq.length - 1 ? 'disabled' : ''}>Later</button>
+      ${f.top ? '<button class="btn sm" data-act="splitItem">Split into lanes</button>' : ''}
+      <button class="btn sm" data-act="dupItem">Duplicate</button>
+      <button class="btn sm danger" data-act="delItem">Remove</button>
+    </div>
+    ${f.top ? '' : `<div class="btnrow"><button class="btn sm" data-act="selSplit">Split options</button></div>`}</div>`;
+}
+function layoutFor(m, split, d) { return layoutSeq(m, m.days[d].items, m.days[d].start, true).find(x => x.it.id === split.id); }
+function splitInspector(m, f) {
+  const n = f.it.lanes.length, L = layoutFor(m, f.it, f.d);
+  return `<div class="panel insp"><div class="panelhead"><h2>Split on ${dayName(f.d)}</h2>${closeBtn}</div>
+    <p class="hint">${clock(L.start)}–${clock(L.end)}. Lanes run at the same time, so their minutes are never added together. Drag blocks into a lane, or use each lane's own passing and length.</p>
+    ${f.idx > 0 ? `<div class="field"><label for="iGap">Passing before this split (min)</label><input class="txt num" id="iGap" type="number" min="0" max="${LIM.gap[1]}" value="${L.gap}" data-f="iGap"></div>` : ''}
+    <div class="btnrow">
+      <button class="btn sm" data-act="addLane" ${n >= MAX_LANES ? 'disabled' : ''}>Add lane</button>
+      ${f.it.lanes.map((_, i) => `<button class="btn sm" data-act="keepLane" data-l="${i}">Keep only lane ${i + 1}</button>`).join('')}
+      ${n > 2 ? f.it.lanes.map((_, i) => `<button class="btn sm" data-act="dropLane" data-l="${i}">Remove lane ${i + 1}</button>`).join('') : ''}
+      <button class="btn sm danger" data-act="delItem">Remove split</button></div></div>`;
+}
+function renderLengths(c) {
+  const m = M(), t = totals(m), days = [...Array(14).keys()];
+  const cell = (b, d) => {
+    const ps = placements(m, b.id, d), ds = [...new Set(ps.map(p => durOf(m, p.it)))];
+    if (ds.length > 1) return `<span class="fixed" title="This block has different lengths in this day. Edit them on the Schedule tab.">${Math.min(...ds)}–${Math.max(...ds)}</span>`;
+    const v = ds[0] ?? '';
+    return `<input id="lt-${esc(b.id)}-${d}" type="number" min="0" max="${LIM.len[1]}" step="5" value="${v}" data-f="lt" data-b="${esc(b.id)}" data-d="${d}" class="${v !== '' && v !== b.len ? 'diff' : ''}" aria-label="${esc(b.name)} on ${dayName(d)}, minutes">`;
+  };
+  c.innerHTML = `<p class="note">Set each block's length for each day. Shaded cells differ from the default. Type a number in an empty cell to add the block to the end of that day, or clear a cell to remove it.</p>
+  <div class="tablewrap"><table class="lt"><thead>
+    <tr><th class="stick"></th><th></th><th colspan="7" class="wkstart">Week 1</th><th colspan="7" class="wkstart">Week 2</th><th class="wkstart"></th></tr>
+    <tr><th class="stick">Block</th><th>Default</th>${days.map(d => `<th class="${d % 7 === 0 ? 'wkstart' : ''}">${DAYS[d % 7]}</th>`).join('')}<th class="wkstart">2-wk (${unitLabel()})</th></tr></thead>
+    <tbody>${m.blocks.map(b => {
+      const tg = targetState(b.target, t.all.blocks[b.id]);
+      return `<tr><td class="stick"><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}</td>
+      <td><input id="ltd-${esc(b.id)}" type="number" min="5" max="${LIM.len[1]}" step="5" value="${b.len}" data-f="ltDefault" data-b="${esc(b.id)}" aria-label="${esc(b.name)} default length"></td>
+      ${days.map(d => `<td class="${d % 7 === 0 ? 'wkstart' : ''}">${cell(b, d)}</td>`).join('')}
+      <td class="wkstart num">${fmtR(t.all.blocks[b.id])}${tg ? ` <span class="pill ${tg.met ? 'met' : 'short'}">${tg.met ? 'Met' : `${fmt(tg.short)} short`}</span>` : ''}</td></tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+function miniHTML(m, lo, hi) {
+  const y = v => (v - lo) / (hi - lo) * 100;
+  const bar = (it, s, e, left, width) => `<i style="--h:${blockOf(m, it.blockId)?.hue ?? 0};top:${y(s)}%;height:${y(e) - y(s)}%;left:${left}%;width:${width}%"></i>`;
+  const col = d => {
+    let h = '';
+    layoutSeq(m, m.days[d].items, m.days[d].start, true).forEach(({ it, start, end }) => {
+      if (it.t === 'b') h += bar(it, start, end, 0, 100);
+      else it.lanes.forEach((l, li) => layoutSeq(m, l, start, false).forEach(x => { if (x.it.t === 'b') h += bar(x.it, x.start, x.end, li * 100 / it.lanes.length, 100 / it.lanes.length); }));
+    });
+    return `<div class="col" title="${dayName(d)}">${h}</div>`;
+  };
+  const wk = w => [0, 1, 2, 3, 4, 5, 6].map(i => col(w * 7 + i)).join('');
+  const labs = DAYS.map(d => `<span>${d[0]}</span>`).join('');
+  return `<div class="strip">${wk(0)}<span></span>${wk(1)}</div><div class="striplabs">${labs}<span></span>${labs}</div>`;
+}
+function renderCompare(c) {
+  const ms = S.compare.map(id => S.models.find(m => m.id === id)).filter(Boolean);
+  const pick = `<div class="pickrow"><strong>Compare:</strong>${S.models.map(m => `<label><input type="checkbox" id="cmp-${esc(m.id)}" data-f="cmp" data-m="${esc(m.id)}"${S.compare.includes(m.id) ? ' checked' : ''}>${esc(m.name)}</label>`).join('')}
+    <div class="tabs" style="margin-left:auto;font-size:12px"><button data-act="unit" data-u="min" aria-selected="${S.unit === 'min'}" style="padding:1px 8px">min</button><button data-act="unit" data-u="hrs" aria-selected="${S.unit === 'hrs'}" style="padding:1px 8px">h:mm</button></div></div>`;
+  if (!ms.length) { c.innerHTML = `<div class="cmp">${pick}<p class="note">Select at least one model to see its totals.</p></div>`; return; }
+  const T = ms.map(m => totals(m));
+  const ranges = ms.map(gridRange), lo = Math.min(...ranges.map(r => r.lo)), hi = Math.max(...ranges.map(r => r.hi));
+  // Both ends of a range are compared, so "same" only appears when the low and the high totals both match.
+  const signed = v => v === 0 ? '±0' : `${v > 0 ? '+' : '−'}${fmt(Math.abs(v))}`;
+  const delta = (r, i, get) => {
+    if (i === 0 || ms.length < 2) return '';
+    const base = get(0);
+    if (!r || !base) return '';
+    const dLo = r.lo - base.lo, dHi = r.hi - base.hi;
+    if (!dLo && !dHi) return '<span class="delta">same</span>';
+    const dir = dLo >= 0 && dHi >= 0 ? 'up' : dLo <= 0 && dHi <= 0 ? 'down' : '';
+    return `<span class="delta ${dir}">${dLo === dHi ? signed(dLo) : `${signed(dLo)} low, ${signed(dHi)} high`}</span>`;
+  };
+  const line = (label, get, opts = {}) => `<tr class="${opts.bold ? 'b' : ''}"><td class="stick">${label}</td>${ms.map((m, i) => {
+    const r = get(i); return `<td class="num">${r ? fmtR(r) : '–'}${delta(r, i, get)}</td>`;
+  }).join('')}</tr>`;
+  const head = txt => `<tr><th class="stick" colspan="${ms.length + 1}" style="text-align:left">${txt}</th></tr>`;
+  // A model with no time of some kind has 0 minutes of it, not a blank, so it still gets a difference.
+  const z = r => r || R();
+  const catRows = Object.keys(CATS).filter(k => k !== 'class' && T.some(t => t.all.cats[k])).map(k => line(`${CATS[k]}, two-week`, i => z(T[i].all.cats[k])));
+  // Blocks are matched by name and type, so a "Block A" class is never compared with a "Block A" lunch.
+  const keyOf = b => `${nameKey(b.name)}|${b.cat}`;
+  const groups = new Map();
+  ms.flatMap(m => m.blocks).forEach(b => { if (!groups.has(keyOf(b))) groups.set(keyOf(b), { key: keyOf(b), name: b.name.trim(), cat: b.cat }); });
+  const typesPerName = new Map();
+  groups.forEach(g => typesPerName.set(nameKey(g.name), (typesPerName.get(nameKey(g.name)) || 0) + 1));
+  const blockLabel = g => esc(g.name) + (typesPerName.get(nameKey(g.name)) > 1 ? ` <span class="hint">(${CATS[g.cat]})</span>` : '');
+  const byKey = (i, key, w) => {
+    const b = ms[i].blocks.find(x => keyOf(x) === key);
+    return b ? z(w.blocks[b.id]) : null;
+  };
+  const status = ms.map((m, i) => { const s = shortfalls(m, T[i]); return s.length ? `<span class="pill short" title="${esc(s.join(', '))}">${s.length} short</span>` : (m.classTarget != null || m.blocks.some(b => b.target != null)) ? '<span class="pill met">All met</span>' : '<span class="hint">No targets</span>'; });
+  c.innerHTML = `<div class="cmp">${pick}
+    <div class="minis">${ms.map((m, i) => `<div class="mini"><h3>${esc(m.name)}</h3>${miniHTML(m, lo, hi)}<span class="hint">${fmtR(T[i].all.cats.class)} ${unitLabel()} class time over two weeks</span></div>`).join('')}</div>
+    <div class="tablewrap"><table class="lt"><thead><tr><th class="stick">${unitLabel() === 'min' ? 'Minutes' : 'Hours'}</th>${ms.map(m => `<th>${esc(m.name)}</th>`).join('')}</tr></thead><tbody>
+      ${head('Class time')}
+      ${line('Week 1', i => z(T[i].w[0].cats.class))}${line('Week 2', i => z(T[i].w[1].cats.class))}${line('Two-week total', i => z(T[i].all.cats.class))}
+      <tr><td class="stick">Targets</td>${status.map(s => `<td>${s}</td>`).join('')}</tr>
+      ${head('Other time')}${catRows.join('')}${line('Passing, two-week', i => T[i].all.pass)}
+      ${head('Named blocks, two-week total')}${[...groups.values()].map(g => line(blockLabel(g), i => byKey(i, g.key, T[i].all))).join('')}
+    </tbody></table></div>
+    ${ms.length > 1 ? `<p class="note">Differences compare each model with ${esc(ms[0].name)}. When a total is a range, the low and high ends are compared separately. Blocks with the same name and type are matched across models; – means the model has no such block.</p>` : ''}</div>`;
+}
+
+/* ---------- Editing operations ---------- */
+function setDur(m, it, v) { const b = blockOf(m, it.blockId); it.dur = v === b.len ? null : v; }
+function setGap(m, f, v) { const def = f.idx === 0 ? 0 : m.passing; f.it.gap = v === def ? null : v; }
+function setStart(m, f, v) {
+  const t0 = f.top ? m.days[f.d].start : layoutFor(m, f.split, f.d).start;
+  const L = layoutSeq(m, f.seq, t0, f.top)[f.idx];
+  if (f.top && f.idx === 0) { m.days[f.d].start = v; return; }
+  const g = L.gap + (v - L.start);
+  if (g < 0) { toast('A block can\'t start before the one above it ends. Move or shorten that block first.'); return; }
+  if (g > LIM.gap[1]) { toast(`That would leave more than ${LIM.gap[1]} minutes before this block.`); return; }
+  setGap(m, f, g);
+}
+function nextBlockName(m) {
+  const names = new Set(m.blocks.map(b => b.name));
+  const nums = m.blocks.map(b => /^Period (\d+)$/.exec(b.name)).filter(Boolean).map(x => +x[1]);
+  const lets = m.blocks.map(b => /^Block ([A-Z])$/.exec(b.name)).filter(Boolean).map(x => x[1].charCodeAt(0));
+  if (nums.length >= lets.length && nums.length) return `Period ${Math.max(...nums) + 1}`;
+  if (lets.length && Math.max(...lets) < 90) return `Block ${String.fromCharCode(Math.max(...lets) + 1)}`;
+  let i = m.blocks.length + 1; while (names.has(`Block ${i}`)) i++;
+  return `Block ${i}`;
+}
+function addBlockTo(m) {
+  const used = new Set(m.blocks.map(b => b.hue)), hue = HUES.find(h => !used.has(h)) ?? HUES[m.blocks.length % HUES.length];
+  const b = mkBlock(uniqueName(nextBlockName(m), blockNames(m)), 'class', m.blockLen ?? guessLen(m), hue);
+  m.blocks.push(b); return b;
+}
+function removeBlock(m, id) {
+  const strip = seq => seq.filter(it => it.t !== 'b' || it.blockId !== id);
+  m.days.forEach(day => {
+    day.items = strip(day.items);
+    day.items.forEach(it => { if (it.t === 's') it.lanes = it.lanes.map(strip); });
+    day.items = day.items.filter(it => it.t !== 's' || it.lanes.some(l => l.length));
+  });
+  m.blocks = m.blocks.filter(b => b.id !== id);
+}
+// A split section with nothing left in any lane would only add an extra passing period, so it is removed.
+// Runs after every edit. A split that still has blocks keeps its empty lanes (Add lane makes one on purpose).
+function tidy(m) {
+  m.days.forEach(day => { day.items = day.items.filter(it => it.t !== 's' || it.lanes.some(l => l.length)); });
+}
+function copyDayTo(m, from, targets) {
+  targets.filter(t => t !== from).forEach(t => { m.days[t] = { start: m.days[from].start, items: m.days[from].items.map(reId) }; });
+}
+function setBlockCount(n) {
+  const m = M(); n = clamp(n, 1, 40);
+  if (n >= m.blocks.length) { commit(mm => { while (mm.blocks.length < n) addBlockTo(mm); }); return; }
+  const gone = m.blocks.slice(n), placed = gone.reduce((a, b) => a + placements(m, b.id).length, 0);
+  const go = () => commit(mm => gone.forEach(b => removeBlock(mm, b.id)));
+  if (!placed) return go();
+  confirmDlg(`Remove ${gone.length} block${gone.length > 1 ? 's' : ''}?`, `This removes ${gone.map(b => b.name).join(', ')} and ${placed} placement${placed > 1 ? 's' : ''} from the calendar. Undo can bring them back.`, 'Remove', go, render);
+}
+
+/* ---------- Clicks ---------- */
+const actions = {
+  view(el) { S.view = el.dataset.v; S.sel = null; render(); },
+  unit(el) { S.unit = el.dataset.u; persist(); render(); },
+  undo() { restore(undoStack, redoStack); },
+  redo() { restore(redoStack, undoStack); },
+  print() { window.print(); },
+  deselect() { S.sel = null; render(); },
+  selDay(el) { S.sel = { kind: 'day', d: +el.dataset.d }; render(); },
+  addBlock() { let b; commit(m => { b = addBlockTo(m); }); S.sel = { kind: 'block', id: b.id }; render(); $('#bName')?.select(); },
+  hue(el) { commit(m => { blockOf(m, S.sel.id).hue = +el.dataset.h; }); },
+  delBlock() {
+    const m = M(), b = blockOf(m, S.sel.id), n = placements(m, b.id).length;
+    const go = () => { S.sel = null; commit(mm => removeBlock(mm, b.id)); };
+    if (!n) return go();
+    confirmDlg(`Delete ${b.name}?`, `This also removes its ${n} placement${n > 1 ? 's' : ''} from the calendar. Undo can bring them back.`, 'Delete', go);
+  },
+  copyDay(el) { const t = +el.dataset.d, d = S.sel.d; commit(m => copyDayTo(m, d, [t])); toast(`Copied ${dayName(d)} to ${dayName(t)}`); },
+  copyDayWeekdays() { const d = S.sel.d; commit(m => copyDayTo(m, d, [1, 2, 3, 4, 5, 8, 9, 10, 11, 12])); toast('Copied to all weekdays in both weeks'); },
+  copyDaySame() { const d = S.sel.d, t = (d + 7) % 14; commit(m => copyDayTo(m, d, [t])); toast(`Copied ${dayName(d)} to ${dayName(t)}`); },
+  clearDay() { const d = S.sel.d; commit(m => { m.days[d].items = []; }); },
+  copyWeek() { commit(m => { for (let i = 0; i < 7; i++) copyDayTo(m, i, [i + 7]); }); toast('Copied Week 1 to Week 2. Undo restores the old Week 2.'); },
+  resetLen() { commit(m => { findItem(m, S.sel.id).it.dur = null; }); },
+  resetGap() { commit(m => { findItem(m, S.sel.id).it.gap = null; }); },
+  moveItem(el) {
+    commit(m => { const f = findItem(m, S.sel.id), j = f.idx + +el.dataset.dir; if (j < 0 || j >= f.seq.length) return; f.seq.splice(f.idx, 1); f.seq.splice(j, 0, f.it); });
+  },
+  dupItem() { let c; commit(m => { const f = findItem(m, S.sel.id); c = reId(f.it); c.gap = null; f.seq.splice(f.idx + 1, 0, c); }); S.sel = { kind: 'item', id: c.id }; render(); },
+  delItem() { const id = S.sel.id; S.sel = null; commit(m => { const f = findItem(m, id); f.seq.splice(f.idx, 1); }); },
+  splitItem() {
+    let s; commit(m => {
+      const f = findItem(m, S.sel.id), a = clone(f.it), b = reId(f.it), gap = f.it.gap;
+      a.gap = b.gap = null; s = mkSplit([[a], [b]], gap); f.seq.splice(f.idx, 1, s);
+    });
+    S.sel = { kind: 'item', id: s.id }; render();
+    toast('Split into two lanes. Resize a lane\'s block or drag others into it.');
+  },
+  selSplit() { const f = findItem(M(), S.sel.id); S.sel = { kind: 'item', id: f.split.id }; render(); },
+  addLane() { commit(m => { findItem(m, S.sel.id).it.lanes.push([]); }); },
+  dropLane(el) { commit(m => { findItem(m, S.sel.id).it.lanes.splice(+el.dataset.l, 1); }); },
+  keepLane(el) {
+    const id = S.sel.id, l = +el.dataset.l; S.sel = null;
+    commit(m => { const f = findItem(m, id), keep = f.it.lanes[l]; if (keep[0]) keep[0].gap = f.it.gap; f.seq.splice(f.idx, 1, ...keep); });
+  },
+  newModel() { newModelDlg(); },
+  dupModel() {
+    const c = clone(M()); c.id = uid(); c.name = uniqueName(`${c.name} copy`, modelNames());
+    const ids = new Set(); // keep block ids, renew placement ids
+    c.days.forEach(d => { d.items = d.items.map(reId); });
+    S.models.push(c); S.activeId = c.id; S.sel = null; persist(); render(); toast(`Created ${c.name}`);
+  },
+  delModel() {
+    const m = M();
+    if (S.models.length === 1) return toast('Keep at least one model. Create another before deleting this one.');
+    confirmDlg(`Delete ${m.name}?`, 'This can\'t be undone. Export the model first if you might want it again.', 'Delete model', () => {
+      S.models = S.models.filter(x => x.id !== m.id); S.compare = S.compare.filter(x => x !== m.id);
+      S.activeId = S.models[0].id; S.sel = null; undoStack = undoStack.filter(u => u.id !== m.id); redoStack = redoStack.filter(u => u.id !== m.id);
+      persist(); render();
+    });
+  },
+  applyLenDlg() { applyLenDlg(); },
+  exportDlg() { exportDlg(); },
+  importDlg() { importDlg(); },
+};
+// On a touchscreen a press on a block scrolls instead of starting a drag, so a tap selects it here.
+let lastPointerType = 'mouse';
+document.addEventListener('pointerdown', e => { lastPointerType = e.pointerType; }, true);
+document.addEventListener('click', e => {
+  if (P?.suppressClick) return;
+  const a = e.target.closest('[data-act]');
+  if (a && !a.closest('dialog')) { actions[a.dataset.act]?.(a); return; }
+  const tapped = !a && lastPointerType === 'touch' && e.target.closest('[data-item],[data-pal]');
+  if (tapped && !tapped.closest('dialog')) {
+    S.sel = tapped.dataset.item ? { kind: 'item', id: tapped.dataset.item } : { kind: 'block', id: tapped.dataset.pal };
+    render();
+  }
+});
+
+/* ---------- Form fields ---------- */
+const fields = {
+  blockCount(v) { const n = posInt(v); if (n) setBlockCount(n); else queueRender(); },
+  mName(v) {
+    const want = v.trim() || 'Untitled model', name = uniqueName(want, modelNames(S.activeId));
+    commit(m => { m.name = name; });
+    if (name !== want) toast(`Another model is already named ${want}, so this one is ${name}.`);
+  },
+  mLen(v) {
+    const n = within(v, LIM.len);
+    if (n == null) { toast(rangeMsg('Length', LIM.len)); return queueRender(); }
+    commit(m => { m.blockLen = n; });
+  },
+  mPass(v) { const n = within(v, LIM.pass); if (n != null) commit(m => { m.passing = n; }); else { toast(rangeMsg('Passing', LIM.pass)); queueRender(); } },
+  mStart(v) {
+    const t = parseTime(v); if (t == null) return queueRender();
+    commit(m => { const old = m.defaultStart; m.defaultStart = t; m.days.forEach(d => { if (!d.items.length || d.start === old) d.start = t; }); });
+  },
+  mTarget(v) { commit(m => { m.classTarget = v === '' ? null : posInt(v, m.classTarget); }); },
+  zoom(v) { S.zoom = v; persist(); render(); },
+  bName(v) {
+    const want = v.trim(); if (!want) return queueRender();
+    const id = S.sel.id, name = uniqueName(want, blockNames(M(), id));
+    commit(m => { blockOf(m, id).name = name; });
+    if (name !== want) toast(`Another block is already named ${want}, so this one is ${name}.`);
+  },
+  bCat(v) { commit(m => { blockOf(m, S.sel.id).cat = v; }); },
+  bLen(v) { setDefaultLen(S.sel.id, v); },
+  bTarget(v) { commit(m => { const b = blockOf(m, S.sel.id); b.target = v === '' ? null : posInt(v, b.target); }); },
+  dStart(v) { const t = parseTime(v), d = S.sel.d; if (t != null) commit(m => { m.days[d].start = t; }); else queueRender(); },
+  dAdd(v) { const d = S.sel.d; if (v) commit(m => { m.days[d].items.push(mkItem(v)); }); },
+  iBlock(v) { commit(m => { const it = findItem(m, S.sel.id).it; it.blockId = v; it.dur = null; }); },
+  iLen(v) { const n = within(v, LIM.len); if (n != null) commit(m => { const f = findItem(m, S.sel.id); setDur(m, f.it, n); }); else { toast(rangeMsg('Length', LIM.len)); queueRender(); } },
+  iGap(v) { const n = within(v, LIM.gap); if (n != null) commit(m => { setGap(m, findItem(m, S.sel.id), n); }); else { toast(rangeMsg('Passing', LIM.gap)); queueRender(); } },
+  iStart(v) { const t = parseTime(v); if (t != null) commit(m => { setStart(m, findItem(m, S.sel.id), t); }); else queueRender(); },
+  lt(v, el) { setCell(el.dataset.b, +el.dataset.d, v); },
+  ltDefault(v, el) { setDefaultLen(el.dataset.b, v); },
+  cmp(v, el) {
+    const id = el.dataset.m; S.compare = el.checked ? [...S.compare, id] : S.compare.filter(x => x !== id);
+    persist(); queueRender();
+  },
+};
+function setDefaultLen(id, v) {
+  const n = within(v, LIM.len);
+  if (n == null) { toast(rangeMsg('Length', LIM.len)); return queueRender(); }
+  const s = snapshot(), m = M(), b = blockOf(m, id);
+  // Placements that already matched the new length no longer need their own value.
+  b.len = n; placements(m, id).forEach(p => { if (p.it.dur === n) p.it.dur = null; });
+  if (s.json !== JSON.stringify(m)) pushUndo(s);
+  persist(); queueRender();
+}
+function setCell(blockId, d, v) {
+  const s = snapshot(), m = M(), ps = placements(m, blockId, d);
+  if (v === '' || posInt(v) === 0) { ps.forEach(p => p.seq.splice(p.seq.indexOf(p.it), 1)); }
+  else {
+    const n = within(v, LIM.len);
+    if (n == null) { toast(rangeMsg('Length', LIM.len)); return queueRender(); }
+    if (ps.length) ps.forEach(p => setDur(m, p.it, n));
+    else { const it = mkItem(blockId); setDur(m, it, n); m.days[d].items.push(it); }
+  }
+  tidy(m);
+  if (s.json !== JSON.stringify(m)) pushUndo(s);
+  persist(); queueRender();
+}
+function applyField(el) {
+  const f = el.dataset?.f;
+  if (!f || !fields[f]) return;
+  // A number or time box holding something it can't read reports an empty value.
+  // Treat that as a typo to undo, never as "clear this" (which would delete a placement or a target).
+  if (el.validity?.badInput) { toast(el.type === 'time' ? 'Enter a complete time. Nothing was changed.' : 'That isn\'t a number. Nothing was changed.'); return queueRender(); }
+  const v = el.value; setTimeout(() => fields[f](v, el), 0);
+}
+document.addEventListener('change', e => {
+  if (e.target.id === 'modelPick') { S.activeId = e.target.value; S.sel = null; persist(); render(); return; }
+  // Time boxes report a change after every keystroke (typing "10" first reports 1:00),
+  // so they are applied when you press Enter or leave the box instead.
+  if (e.target.type === 'time') return;
+  applyField(e.target);
+});
+const timeField = el => el?.type === 'time' && !!el.dataset?.f;
+document.addEventListener('focusout', e => { if (timeField(e.target) && (e.target.value !== e.target.defaultValue || e.target.validity.badInput)) applyField(e.target); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && timeField(e.target)) { e.preventDefault(); if (e.target.value !== e.target.defaultValue || e.target.validity.badInput) applyField(e.target); }
+});
+
+/* ---------- Dragging and resizing ---------- */
+let P = null;
+const ghost = $('#ghost'), dropline = $('#dropline');
+document.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || e.target.closest('dialog')) return;
+  const rz = e.target.closest('[data-rz]'), gapEl = e.target.closest('[data-gapfor]');
+  const itEl = e.target.closest('[data-item]'), pal = e.target.closest('[data-pal]');
+  const m = M();
+  if (rz && itEl) {
+    const f = findItem(m, itEl.dataset.item);
+    const t0 = f.top ? m.days[f.d].start : layoutFor(m, f.split, f.d).start;
+    P = { kind: 'rz', edge: rz.dataset.rz, id: f.it.id, y0: e.clientY, dur: durOf(m, f.it), gap: layoutSeq(m, f.seq, t0, f.top)[f.idx].gap, dayStart: m.days[f.d].start, snap: snapshot() };
+  } else if (gapEl) {
+    const f = findItem(m, gapEl.dataset.gapfor);
+    const t0 = f.top ? m.days[f.d].start : layoutFor(m, f.split, f.d).start;
+    P = { kind: 'gap', id: f.it.id, y0: e.clientY, gap: layoutSeq(m, f.seq, t0, f.top)[f.idx].gap, snap: snapshot() };
+  } else if (itEl || pal) {
+    if (e.pointerType === 'touch') return; // touch scrolls; blocks are edited from the side panel
+    P = { kind: 'drag', pending: true, x0: e.clientX, y0: e.clientY, id: itEl?.dataset.item, pal: pal?.dataset.pal };
+    if (itEl) {
+      const r = itEl.closest('.split') && itEl.classList.contains('splittab') ? itEl.closest('.split').getBoundingClientRect() : itEl.getBoundingClientRect();
+      P.grab = (e.clientY - r.top) / ppm();
+    } else P.grab = 0;
+  } else return;
+  e.preventDefault();
+  if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+  document.body.classList.toggle('sizing', P.kind !== 'drag');
+});
+document.addEventListener('pointermove', e => {
+  if (!P || P.suppressClick) return;
+  // The button was released outside the window, so no pointerup arrived: finish now.
+  if (!(e.buttons & 1)) { endPointer(); return; }
+  if (P.kind === 'drag') {
+    if (P.pending) {
+      if (Math.hypot(e.clientX - P.x0, e.clientY - P.y0) < 5) return;
+      P.pending = false; startDrag();
+    }
+    moveDrag(e); return;
+  }
+  const m = M(), f = findItem(m, P.id), k = ppm();
+  if (!f) { cancelPointer(); return; }
+  let d = snap((e.clientY - P.y0) / k);
+  if (P.kind === 'gap') { f.it.gap = null; setGap(m, f, clamp(P.gap + d, ...LIM.gap)); }
+  else if (P.edge === 'b') setDur(m, f.it, clamp(P.dur + d, ...LIM.len));
+  else {
+    const firstTop = f.top && f.idx === 0;
+    d = clamp(d, P.dur - LIM.len[1], P.dur - MIN_LEN);
+    if (firstTop) { d = Math.max(d, LIM.start[0] - P.dayStart); m.days[f.d].start = P.dayStart + d; }
+    else { d = Math.max(d, -P.gap); setGap(m, f, P.gap + d); }
+    setDur(m, f.it, P.dur - d);
+  }
+  renderCenter(); if (S.sel) renderRight(); else renderRight();
+});
+function startDrag() {
+  const m = M(); document.body.classList.add('dragging');
+  let label = '';
+  if (P.pal) label = blockOf(m, P.pal).name;
+  else { const f = findItem(m, P.id); label = f.it.t === 's' ? 'Split section' : blockOf(m, f.it.blockId).name; P.isSplit = f.it.t === 's'; document.querySelector(f.it.t === 's' ? `[data-split="${P.id}"]` : `.blk[data-item="${P.id}"]`)?.classList.add('lift'); }
+  P.label = esc(label); ghost.hidden = false;
+}
+function seqFor(m, ref) { return ref.split ? findItem(m, ref.split).it.lanes[ref.lane] : m.days[ref.d].items; }
+function computeDrop(x, y) {
+  const m = M();
+  const under = document.elementsFromPoint(x, y);
+  const colEl = under.map(n => n.closest?.('[data-col]')).find(Boolean);
+  if (!colEl) return null;
+  const d = +colEl.dataset.col, { lo } = gridRange(m), k = ppm(), r = colEl.getBoundingClientRect();
+  const minute = lo + (y - r.top) / k;
+  const laneEl = P.isSplit ? null : under.map(n => n.closest?.('[data-lane]')).find(Boolean);
+  const ref = { d }; let t0 = m.days[d].start, box = r;
+  if (laneEl) {
+    const [sid, li] = laneEl.dataset.lane.split(':');
+    ref.split = sid; ref.lane = +li;
+    t0 = layoutFor(m, findItem(m, sid).it, d).start; box = laneEl.getBoundingClientRect();
+  }
+  const seq = seqFor(m, ref), top = !ref.split;
+  const L = layoutSeq(m, seq, t0, top).filter(x2 => x2.it.id !== P.id);
+  let idx = L.length, lineT = L.length ? L[L.length - 1].end + m.passing / 2 : t0;
+  for (let i = 0; i < L.length; i++) if (minute < (L[i].start + L[i].end) / 2) { idx = i; lineT = L[i].start - L[i].gap / 2; break; }
+  // Dropping into an empty day, or dragging the first block of a day, sets the first bell.
+  const wasFirst = top && seq[0]?.id === P.id && idx === 0;
+  let newStart = null;
+  if (top && (!seq.length || (seq.length === 1 && seq[0].id === P.id) || wasFirst)) {
+    newStart = clamp(snap(minute - P.grab), ...LIM.start);
+    if (Math.abs(newStart - m.defaultStart) <= 15) newStart = m.defaultStart;
+    lineT = newStart;
+  }
+  // The drop line sits before this block (null: at the end). Inserting by id rather than by index keeps a
+  // copy-drag right: the original stays in the list for a copy, so an index counted without it would be one short.
+  const beforeId = L[idx]?.it.id ?? null;
+  return { ref, idx, beforeId, newStart, lineY: r.top + (lineT - lo) * k, left: box.left + 2, width: box.width - 4, time: newStart ?? null };
+}
+function moveDrag(e) {
+  const copy = e.ctrlKey || e.altKey, t = computeDrop(e.clientX, e.clientY);
+  P.drop = t; P.copy = copy && !P.pal;
+  ghost.style.transform = `translate(${e.clientX + 12}px, ${e.clientY + 10}px)`;
+  ghost.innerHTML = `${P.label}${P.copy ? ' (copy)' : ''}${t ? `<small>${dayName(t.ref.d)}${t.ref.split ? `, lane ${t.ref.lane + 1}` : ''}${t.time != null ? `, first bell ${clock(t.time)}` : ''}</small>` : '<small>Drop on a day</small>'}`;
+  dropline.hidden = !t;
+  if (t) Object.assign(dropline.style, { left: `${t.left}px`, top: `${t.lineY - 1}px`, width: `${t.width}px` });
+}
+function finishDrag() {
+  const drop = P.drop, id = P.id, palId = P.pal, copy = P.copy;
+  ghost.hidden = true; dropline.hidden = true;
+  document.body.classList.remove('dragging');
+  if (!drop) { P = null; render(); return; }
+  let placed;
+  commit(m => {
+    const seq = seqFor(m, drop.ref);
+    if (palId) placed = mkItem(palId);
+    else {
+      const f = findItem(m, id);
+      if (copy) placed = reId(f.it);
+      else { placed = f.it; f.seq.splice(f.idx, 1); }
+      placed.gap = null;
+    }
+    const at = drop.beforeId ? seq.findIndex(x => x.id === drop.beforeId) : -1;
+    seq.splice(at < 0 ? seq.length : at, 0, placed);
+    if (drop.newStart != null) m.days[drop.ref.d].start = drop.newStart;
+  });
+  S.sel = { kind: 'item', id: placed.id };
+  P = { suppressClick: true }; render();
+  setTimeout(() => { if (P?.suppressClick) P = null; }, 0);
+}
+document.addEventListener('pointerup', () => endPointer());
+function endPointer() {
+  if (!P || P.suppressClick) return;
+  document.body.classList.remove('sizing');
+  if (P.kind === 'drag') {
+    if (!P.pending) return finishDrag();
+    const { id, pal } = P; P = null;
+    S.sel = id ? { kind: 'item', id } : { kind: 'block', id: pal };
+    render(); return;
+  }
+  const s = P.snap, id = P.id; P = null;
+  if (s.json !== JSON.stringify(M())) pushUndo(s);
+  S.sel = { kind: 'item', id }; persist(); render();
+}
+document.addEventListener('pointercancel', cancelPointer);
+function cancelPointer() {
+  if (!P) return;
+  if (P.snap) { const i = S.models.findIndex(m => m.id === P.snap.id); if (i >= 0) S.models[i] = JSON.parse(P.snap.json); }
+  P = null; ghost.hidden = true; dropline.hidden = true;
+  document.body.classList.remove('dragging', 'sizing'); render();
+}
+
+/* ---------- Keyboard ---------- */
+document.addEventListener('keydown', e => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.closest('dialog');
+  if ((e.ctrlKey || e.metaKey) && !typing && e.key.toLowerCase() === 'z') { e.preventDefault(); (e.shiftKey ? actions.redo : actions.undo)(); return; }
+  if ((e.ctrlKey || e.metaKey) && !typing && e.key.toLowerCase() === 'y') { e.preventDefault(); actions.redo(); return; }
+  if (e.key === 'Escape') { if (P) cancelPointer(); else if (S.sel && !typing) { S.sel = null; render(); } return; }
+  if (typing) return;
+  const el = e.target.closest?.('[data-item],[data-pal]');
+  if (el && (e.key === 'Enter' || e.key === ' ')) {
+    e.preventDefault();
+    S.sel = el.dataset.item ? { kind: 'item', id: el.dataset.item } : { kind: 'block', id: el.dataset.pal };
+    render(); return;
+  }
+  if (S.sel?.kind !== 'item' || !findItem(M(), S.sel.id)) return;
+  const id = S.sel.id;
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); actions.delItem(); return; }
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    const dir = e.key === 'ArrowUp' ? -1 : 1;
+    if (e.shiftKey) commit(m => { const f = findItem(m, id); if (f.it.t === 'b') setDur(m, f.it, clamp(durOf(m, f.it) + dir * SNAP, ...LIM.len)); });
+    else actions.moveItem({ dataset: { dir } });
+    document.querySelector(`[data-item="${id}"]`)?.focus();
+  }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    commit(m => {
+      const f = findItem(m, id); if (!f.top) return;
+      const t = f.d + (e.key === 'ArrowLeft' ? -1 : 1); if (t < 0 || t > 13) return;
+      f.seq.splice(f.idx, 1); f.it.gap = null;
+      const dest = m.days[t].items; dest.splice(Math.min(f.idx, dest.length), 0, f.it);
+    });
+    document.querySelector(`[data-item="${id}"]`)?.focus();
+  }
+});
+
+/* ---------- Dialogs ---------- */
+const dlg = $('#dlg');
+function openDlg(html, wire) { dlg.oncancel = null; dlg.innerHTML = html; wire(dlg); if (!dlg.open) dlg.showModal(); }
+function confirmDlg(title, msg, ok, onOk, onCancel) {
+  openDlg(`<div class="dlg"><h2>${esc(title)}</h2><p>${esc(msg)}</p><div class="dlgbtns"><button class="btn" id="dNo">Cancel</button><button class="btn primary" id="dYes">${esc(ok)}</button></div></div>`, d => {
+    $('#dNo', d).onclick = () => { dlg.close(); onCancel?.(); };
+    $('#dYes', d).onclick = () => { dlg.close(); onOk(); };
+    // Escape closes the dialog without a click, and must count as Cancel too.
+    dlg.oncancel = () => { dlg.oncancel = null; onCancel?.(); };
+  });
+}
+function newModelDlg() {
+  openDlg(`<form method="dialog" id="nf"><h2>New schedule model</h2>
+    <div class="field"><label for="nName">Model name</label><input class="txt" id="nName" maxlength="80" placeholder="New schedule model" autocomplete="off"></div>
+    <div class="fieldrow">
+      <div class="field"><label for="nCount">Number of blocks</label><input class="txt num" id="nCount" type="number" min="1" max="40" value="6" required></div>
+      <div class="field"><label for="nStyle">Name blocks</label><select class="txt" id="nStyle"><option value="block">Block A, Block B…</option><option value="period">Period 1, Period 2…</option></select></div>
+    </div>
+    <div class="fieldrow">
+      <div class="field"><label for="nLen">Default length (min)</label><input class="txt num" id="nLen" type="number" min="5" max="${LIM.len[1]}" value="50" required></div>
+      <div class="field"><label for="nPass">Passing (min)</label><input class="txt num" id="nPass" type="number" min="0" max="${LIM.pass[1]}" value="5" required></div>
+    </div>
+    <div class="fieldrow">
+      <div class="field"><label for="nStart">Day starts</label><input class="txt num" id="nStart" type="time" step="300" value="08:00" required></div>
+      <div class="field"><label for="nLunch">Include a Lunch block</label><select class="txt" id="nLunch"><option value="30">Yes, 30 min</option><option value="">No</option></select></div>
+    </div>
+    <label><input type="checkbox" id="nFill" checked> Start with every block on Monday to Friday, both weeks</label>
+    <div class="dlgbtns"><button type="button" class="btn" id="nNo">Cancel</button><button type="submit" class="btn primary">Create model</button></div></form>`, d => {
+    $('#nNo', d).onclick = () => dlg.close();
+    $('#nf', d).onsubmit = e => {
+      e.preventDefault();
+      const n = clamp(posInt($('#nCount', d).value, 6), 1, 40), len = fit($('#nLen', d).value, LIM.len, 50);
+      const style = $('#nStyle', d).value, start = parseTime($('#nStart', d).value) ?? 480, lunch = posInt($('#nLunch', d).value);
+      const name = i => style === 'period' ? `Period ${i + 1}` : `Block ${i < 26 ? String.fromCharCode(65 + i) : i + 1}`;
+      const blocks = Array.from({ length: n }, (_, i) => mkBlock(name(i), 'class', len, HUES[i % HUES.length]));
+      const m = mkModel(uniqueName($('#nName', d).value.trim() || 'New schedule model', modelNames()), blocks, { passing: fit($('#nPass', d).value, LIM.pass, 5), start, len });
+      let lb = null;
+      if (lunch) { lb = mkBlock('Lunch', 'lunch', lunch, HUES[9]); m.blocks.push(lb); }
+      if ($('#nFill', d).checked) [1, 2, 3, 4, 5, 8, 9, 10, 11, 12].forEach(i => {
+        const seq = blocks.map(b => mkItem(b.id));
+        if (lb) seq.splice(Math.ceil(n / 2), 0, mkItem(lb.id));
+        m.days[i].items = seq;
+      });
+      S.models.push(m); S.activeId = m.id; S.sel = null; S.view = 'schedule';
+      dlg.close(); persist(); render();
+    };
+  });
+}
+/* Spreadsheet apps run a cell that starts with = + - @ (or a tab or return) as a formula, and block names can come
+   from an imported file. Such text gets a leading apostrophe so it stays text. Numbers are left alone. */
+const csvCell = v => {
+  let s = String(v);
+  if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+const csv = rows => rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+const plainR = r => !r ? 0 : r.lo === r.hi ? r.lo : `${r.lo}-${r.hi}`;
+function scheduleCSV(m) {
+  const rows = [['Week', 'Day', 'Lane', 'Start', 'End', 'Block', 'Type', 'Minutes', 'Passing before']];
+  const add = (d, lane, x, extra = 0) => { const b = blockOf(m, x.it.blockId); rows.push([d < 7 ? 1 : 2, DAYS[d % 7], lane, hhmm(x.start), hhmm(x.end), b.name, CATS[b.cat], x.end - x.start, x.gap + extra]); };
+  m.days.forEach((day, d) => layoutSeq(m, day.items, day.start, true).forEach(x => {
+    if (x.it.t === 'b') add(d, '', x);
+    else x.it.lanes.forEach((l, li) => layoutSeq(m, l, x.start, false).forEach((y, yi) => add(d, li + 1, y, yi === 0 ? x.gap : 0)));
+  }));
+  return csv(rows);
+}
+function totalsCSV(m) {
+  const t = totals(m), rows = [['Item', 'Type', 'Week 1 min', 'Week 2 min', 'Two-week min', 'Two-week target', 'Status']];
+  const st = s => !s ? '' : s.met ? 'Met' : `${s.short} short`;
+  rows.push(['All class time', 'Class', plainR(t.w[0].cats.class), plainR(t.w[1].cats.class), plainR(t.all.cats.class), m.classTarget ?? '', st(targetState(m.classTarget, t.all.cats.class))]);
+  m.blocks.forEach(b => rows.push([b.name, CATS[b.cat], plainR(t.w[0].blocks[b.id]), plainR(t.w[1].blocks[b.id]), plainR(t.all.blocks[b.id]), b.target ?? '', st(targetState(b.target, t.all.blocks[b.id]))]));
+  rows.push(['Passing', 'Passing', plainR(t.w[0].pass), plainR(t.w[1].pass), plainR(t.all.pass), '', '']);
+  return csv(rows);
+}
+function exportDlg() {
+  const m = M();
+  const kinds = {
+    model: { label: 'This model, to re-import (.json)', ext: 'json', text: () => JSON.stringify({ app: 'bell-schedule-modeler', version: 1, models: [m] }, null, 1) },
+    all: { label: 'All models, to re-import (.json)', ext: 'json', text: () => JSON.stringify({ app: 'bell-schedule-modeler', version: 1, models: S.models }, null, 1) },
+    bell: { label: 'Bell schedule (.csv)', ext: 'csv', text: () => scheduleCSV(m) },
+    totals: { label: 'Totals by block (.csv)', ext: 'csv', text: () => totalsCSV(m) },
+  };
+  openDlg(`<div class="dlg"><h2>Export</h2>
+    <div class="field"><label for="xKind">What to export</label><select class="txt" id="xKind">${Object.entries(kinds).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select></div>
+    <textarea class="txt" id="xText" readonly aria-label="Exported text"></textarea>
+    <div class="dlgbtns"><button class="btn" id="xClose">Close</button><button class="btn" id="xCopy">Copy</button>${IS_LOCAL ? '<button class="btn primary" id="xSave">Download</button>' : ''}</div></div>`, d => {
+    const area = $('#xText', d), kind = $('#xKind', d), fill = () => { area.value = kinds[kind.value].text(); };
+    kind.onchange = fill; fill();
+    $('#xClose', d).onclick = () => dlg.close();
+    $('#xCopy', d).onclick = () => {
+      const fallback = () => { area.select(); toast('Press Ctrl+C to copy the selected text.'); };
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(area.value).then(() => toast('Copied'), fallback); else fallback();
+    };
+    const save = $('#xSave', d);
+    if (save) save.onclick = () => {
+      const k = kinds[kind.value], a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([area.value], { type: k.ext === 'csv' ? 'text/csv' : 'application/json' }));
+      a.download = `${m.name.replace(/[^\w-]+/g, '-').toLowerCase()}-${kind.value}.${k.ext}`;
+      a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+  });
+}
+function applyLenDlg() {
+  const m = M();
+  openDlg(`<form id="af"><h2>Set every block to one length</h2>
+    <div class="field"><label for="aLen">Length (min)</label><input class="txt num" id="aLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${m.blockLen}"></div>
+    <label><input type="checkbox" id="aAll"> Also change Lunch, Advisory, Break and Other blocks</label>
+    <p id="aWarn"></p>
+    <p class="err" id="aErr" hidden></p>
+    <div class="dlgbtns"><button type="button" class="btn" id="aNo">Cancel</button><button type="submit" class="btn primary" id="aGo">Apply</button></div></form>`, d => {
+    const targets = () => m.blocks.filter(b => $('#aAll', d).checked || b.cat === 'class');
+    const update = () => {
+      const ts = targets(), n = posInt($('#aLen', d).value);
+      const custom = ts.reduce((a, b) => a + placements(m, b.id).filter(p => p.it.dur != null && p.it.dur !== n).length, 0);
+      $('#aGo', d).disabled = !ts.length;
+      $('#aWarn', d).innerHTML = !ts.length ? 'This model has no Class blocks. Tick the box above to change the other blocks.'
+        : `This sets ${ts.length} block${ts.length > 1 ? 's' : ''} to ${n ?? '?'} minutes on every day and makes ${n ?? '?'} the default for new blocks.<br>`
+        + (custom ? `<span class="warnline">It erases ${custom} day-specific length${custom > 1 ? 's' : ''} you set by hand.</span> ` : 'No day-specific lengths are set, so nothing else changes. ')
+        + 'Passing times are kept. Undo can reverse this.';
+    };
+    $('#aLen', d).oninput = update; $('#aAll', d).onchange = update; update();
+    $('#aNo', d).onclick = () => dlg.close();
+    $('#af', d).onsubmit = e => {
+      e.preventDefault();
+      const n = within($('#aLen', d).value, LIM.len);
+      if (n == null) { const err = $('#aErr', d); err.hidden = false; err.textContent = `Enter a length from ${LIM.len[0]} to ${LIM.len[1]} minutes.`; return; }
+      const ids = targets().map(b => b.id);
+      dlg.close();
+      commit(mm => {
+        mm.blockLen = n;
+        ids.forEach(id => { blockOf(mm, id).len = n; placements(mm, id).forEach(p => { p.it.dur = null; }); });
+      });
+      toast(`Set ${ids.length} block${ids.length > 1 ? 's' : ''} to ${n} minutes`);
+    };
+  });
+}
+/* Builds a clean model from data the app didn't just make: an imported file, or what was saved in
+   this browser. Nothing from the input is kept unless it is checked. Imports always get new ids;
+   saved models keep plain, unique ids so the chosen model and Compare picks survive a reload. */
+function cleanModel(raw, fromStorage = false) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.blocks) || !Array.isArray(raw.days) || raw.days.length !== 14) throw new Error('A model needs a block list and exactly 14 days.');
+  const limit = (n, max, what) => { if (!fromStorage && n > max) throw new Error(`A model can have at most ${max} ${what}.`); };
+  limit(raw.blocks.length, MAX.blocks, 'blocks');
+  const used = new Set();
+  const newId = v => { const id = fromStorage && safeId(v) && !used.has(v) ? v : uid(); used.add(id); return id; };
+  const list = v => Array.isArray(v) ? v : [];
+  const idMap = new Map(); // block id in the input -> block id in the app. A repeated id maps to its first block only.
+  const blocks = raw.blocks.map((b, i) => {
+    b = b && typeof b === 'object' ? b : {};
+    const id = newId(b.id);
+    if (b.id != null && !idMap.has(String(b.id))) idMap.set(String(b.id), id);
+    return {
+      id, name: String(b.name || `Block ${i + 1}`).slice(0, 60), cat: has(CATS, b.cat) ? b.cat : 'other',
+      len: fit(b.len, LIM.len, 50), hue: HUES.includes(b.hue) ? b.hue : HUES[i % HUES.length], target: b.target == null ? null : posInt(b.target),
+    };
+  });
+  const opt = (v, lim) => v == null ? null : fit(v, lim, lim[0]);
+  const item = (it, inLane) => {
+    if (!it || typeof it !== 'object') return null;
+    if (it.t === 's' && !inLane && Array.isArray(it.lanes)) {
+      const lanes = it.lanes.slice(0, MAX_LANES).map(l => { limit(list(l).length, MAX.laneItems, 'blocks in one lane'); return list(l).map(x => item(x, true)).filter(Boolean); });
+      // A split with nothing in it would only add a passing period, so it is dropped.
+      return lanes.some(l => l.length) ? { id: newId(it.id), t: 's', gap: opt(it.gap, LIM.gap), lanes } : null;
+    }
+    if (it.t === 'b' && idMap.has(String(it.blockId))) return { id: newId(it.id), t: 'b', blockId: idMap.get(String(it.blockId)), dur: opt(it.dur, LIM.len), gap: opt(it.gap, LIM.gap) };
+    return null;
+  };
+  return {
+    id: fromStorage && safeId(raw.id) ? raw.id : uid(), name: String(raw.name || 'Imported model').slice(0, 80),
+    passing: fit(raw.passing, LIM.pass, 5), defaultStart: fit(raw.defaultStart, LIM.start, 480),
+    blockLen: within(raw.blockLen, LIM.len), classTarget: raw.classTarget == null ? null : posInt(raw.classTarget), blocks,
+    days: raw.days.map(d => {
+      limit(list(d?.items).length, MAX.items, 'blocks in one day');
+      return { start: fit(d?.start, LIM.start, 480), items: list(d?.items).map(x => item(x, false)).filter(Boolean) };
+    }),
+  };
+}
+// Saved models go through the same checks as imports, so a bad value saved by an older version is repaired on load.
+function loadModels(list) {
+  const out = [], ids = new Set();
+  let skipped = 0;
+  (Array.isArray(list) ? list : []).forEach(raw => {
+    try { const m = cleanModel(raw, true); if (ids.has(m.id)) m.id = uid(); ids.add(m.id); out.push(m); } catch (e) { skipped++; }
+  });
+  return { models: out, skipped };
+}
+function importDlg() {
+  openDlg(`<div class="dlg"><h2>Import models</h2>
+    <p class="hint">Choose a .json file made with Export, or paste its text. Imported models are added to your list.</p>
+    <div class="field"><label for="iFile">File</label><input type="file" id="iFile" accept=".json,application/json"></div>
+    <textarea class="txt" id="iText" aria-label="Paste exported text" placeholder="Or paste exported text here"></textarea>
+    <p class="err" id="iErr" hidden></p>
+    <div class="dlgbtns"><button class="btn" id="iNo">Cancel</button><button class="btn primary" id="iGo">Import</button></div></div>`, d => {
+    $('#iNo', d).onclick = () => dlg.close();
+    $('#iFile', d).onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $('#iText', d).value = r.result; }; r.readAsText(f); };
+    $('#iGo', d).onclick = () => {
+      const err = $('#iErr', d);
+      try {
+        const data = JSON.parse($('#iText', d).value);
+        const list = Array.isArray(data?.models) ? data.models : Array.isArray(data) ? data : [data];
+        if (list.length > MAX.models) throw new Error(`A file can hold at most ${MAX.models} models.`);
+        const got = list.map(raw => cleanModel(raw));
+        if (!got.length) throw new Error('The file has no models in it.');
+        got.forEach(m => { normalizeModel(m, modelNames()); S.models.push(m); });
+        S.activeId = got[0].id; S.sel = null;
+        // Draw before saving, so a model that can't be drawn is never saved.
+        dlg.close(); render(); persist(); toast(`Imported ${got.length} model${got.length > 1 ? 's' : ''}`);
+      } catch (ex) {
+        err.hidden = false;
+        err.textContent = ex instanceof SyntaxError ? 'That text is not a valid export. Copy the whole export and try again.' : ex.message;
+      }
+    };
+  });
+}
+
+$('#tabs').addEventListener('keydown', e => e.stopPropagation());
+render();
+// If a saved model couldn't be read, leave the saved copy alone until the next edit.
+if (loaded.skipped) toast(`${loaded.skipped} saved model${loaded.skipped > 1 ? 's' : ''} couldn't be read and ${loaded.skipped > 1 ? 'were' : 'was'} left out.`);
+else persist();
+</script>
+</body>
+</html>
