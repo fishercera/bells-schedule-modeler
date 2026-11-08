@@ -1757,7 +1757,7 @@ window.addEventListener('blur', () => hideTip());
 
 /* ---------- Keyboard ---------- */
 document.addEventListener('keydown', e => {
-  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.closest('dialog');
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.closest?.('dialog');
   if ((e.ctrlKey || e.metaKey) && !typing && e.key.toLowerCase() === 'z') { e.preventDefault(); (e.shiftKey ? actions.redo : actions.undo)(); return; }
   if ((e.ctrlKey || e.metaKey) && !typing && e.key.toLowerCase() === 'y') { e.preventDefault(); actions.redo(); return; }
   if (e.key === 'Escape') { if (!hc.hidden) { hideTip(); return; } if (P) cancelPointer(); else if (S.sel && !typing) { S.sel = null; render(); } return; }

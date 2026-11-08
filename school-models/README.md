@@ -23,6 +23,34 @@ Class minutes per week (from the app's own totals):
 
 Loomis Chaffee (PDF pp. 10–11) was left out on request.
 
+Transitions and the longest run of class blocks (from the app's own totals):
+
+- A **transition** is each move from one block to the next in a student's day, including 0-minute passing. Arriving and leaving don't count. A range means it depends on the student's lane.
+- The **longest run** is the most class blocks in a row that any student has over the two weeks. A run ends at a block that isn't class time, or at a gap of 30 minutes or more. Its length in minutes runs from the start of the first block to the end of the last.
+- **Some lanes only** means only students in some lanes of a split have a run that long.
+
+| School | Transitions, Week 1 | Transitions, Week 2 | Longest run (blocks) | Run length | |
+|---|---|---|---|---|---|
+| Phillips Academy Andover | 22 | 22 | 5 | 4h | |
+| Phillips Exeter (Spring 2026) | 43 | 43 | 2 | 1h 50m | |
+| Phillips Exeter (Winter 2025-26) | 45 | 45 | 2 | 1h 50m | |
+| The Hill School | 30 | 30 | 3 | 2h 38m | |
+| Peddie (Blue/Gold weeks) | 32 | 30 | 3 | 2h 50m | |
+| Choate Rosemary Hall (2023-24) | 27 | 27 | 3 | 3h 35m | |
+| Deerfield | 24 | 24 | 2 | 2h 5m | |
+| St. Paul's School (A/B weeks) | 39 | 39 | 3 | 3h | Some lanes only |
+| Northfield Mount Hermon (CMAP) | 35–36 | 35–36 | 2 | 2h 30m | |
+| Berkshire (2026-27) | 34 | 32 | 3 | 3h 5m | |
+| Westminster (2026-27) | 26 | 26 | 3 | 3h 40m | |
+| Blair Academy | 31 | 30 | 4 | 4h 30m | Some lanes only |
+| St. Andrew's School (2026-27) | 29 | 29 | 3 | 3h 20m | |
+| Taft (2026-27) | 24 | 24 | 2 | 2h 30m | |
+
+Two rows were checked by hand against the published times:
+
+- **Taft:** Week 1 is Mon 5, Tue 5, Wed 1, Thu 6, Fri 5 and Sat 2, for 24 transitions. Week 2 is 5, 5, 3, 6, 5 and 0 (Saturday is Taft Time only), also 24. Its longest run is 2 blocks. Thursday's C (9:05) and D (to 11:35) run 2h 30m, and so do Week 2 Wednesday's C and D. On Monday, Lunch splits each lane's run into two of 2 blocks or fewer.
+- **Deerfield:** each Monday, Tuesday, Thursday and Friday has 6 items, so 5 transitions, and each Wednesday has 4, for 24 a week. Its longest run is Wednesday's Block 2 and Block 3, 10:25–12:30, which is 2 blocks and 2h 5m. On every other day a meeting, lunch or flex time separates the blocks.
+
 ## Rules used for every school
 
 - Only the academic day is modeled: from the first scheduled item to the last class, meeting or extra-help slot. Afternoon athletics, dinner, evening clubs and study hall are left out.
