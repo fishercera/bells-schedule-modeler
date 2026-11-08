@@ -104,9 +104,14 @@ select.pick { width: auto; max-width: 260px; font-weight: 600; }
 /* Block tray */
 .tray { display: flex; flex-direction: column; gap: 8px; }
 .tgroup { display: flex; flex-direction: column; gap: 4px; }
-.thead { display: flex; align-items: center; gap: 6px; padding: 0 1px 2px; border-bottom: 1px solid var(--rule); font: 600 11px/1.3 var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-.thead .tname { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.thead .tcount { font-size: 11px; letter-spacing: 0; }
+.thead { display: flex; align-items: center; gap: 4px; padding: 0 0 1px; border-bottom: 1px solid var(--rule); font: 600 11px/1.3 var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.thead.on { border-bottom-color: var(--accent); }
+.thead .tname { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; border: 0; background: none; padding: 2px 0; font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; cursor: pointer; }
+.thead .tname:hover, .thead.on .tname { color: var(--accent); }
+.thead .tlen { font-size: 11px; letter-spacing: 0; font-weight: 400; }
+.thead .tadd { border: 1px solid transparent; background: none; border-radius: 4px; width: 20px; height: 18px; padding: 0; font: 600 14px/1 var(--f-body); color: var(--muted); cursor: pointer; }
+.thead .tadd:hover { border-color: var(--accent); color: var(--accent); }
+.check { display: flex; gap: 6px; align-items: center; cursor: pointer; }
 .chip {
   --h: 200;
   display: flex; align-items: center; gap: 6px; width: 100%; text-align: left;
@@ -311,14 +316,27 @@ dialog textarea { min-height: 200px; font: 12px/1.4 var(--f-data); resize: verti
 'use strict';
 /* ---------- Constants ---------- */
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const CATS = { class: 'Class', advisory: 'Advisory', lunch: 'Lunch', break: 'Break', other: 'Other' };
+/* Every model starts with these five types, always first and in this order. They can't be renamed or deleted
+   (old files and the school models refer to them by id). A model adds its own types after them.
+   A type that counts as class time is "academic": it counts toward class time, the class target and runs. */
+const BUILTIN = [
+  { id: 'class', name: 'Class', len: 50, academic: true },
+  { id: 'advisory', name: 'Advisory', len: 25, academic: false },
+  { id: 'lunch', name: 'Lunch', len: 30, academic: false },
+  { id: 'break', name: 'Break', len: 10, academic: false },
+  { id: 'other', name: 'Other', len: 30, academic: false },
+];
+const BUILTIN_IDS = new Set(BUILTIN.map(t => t.id));
+const NOTE_MAX = 500, TYPE_NAME_MAX = 30;
+// Version 2 added each model's own types (with default lengths) and notes. Version 1 files still import.
+const FILE_VERSION = 2;
 const HUES = [212, 158, 32, 340, 268, 186, 95, 12, 240, 52, 300, 130];
 const SNAP = 5, MIN_LEN = 5, MAX_LANES = 4;
 /* Allowed ranges, in minutes. Every way a number gets in (typing, dragging, import, saved data)
    goes through these, so no value can make the calendar too large to draw. */
 const LIM = { len: [MIN_LEN, 600], pass: [0, 60], gap: [0, 480], start: [0, 1439] };
 /* Import limits, far above any real schedule, so a crafted file can't stall the page. */
-const MAX = { models: 100, blocks: 100, items: 60, laneItems: 30 };
+const MAX = { models: 100, blocks: 100, items: 60, laneItems: 30, types: 20 };
 const ZOOMS = { Compact: 0.85, Normal: 1.15, Large: 1.6 };
 const IS_LOCAL = /^(file:|https?:\/\/(localhost|127\.0\.0\.1|\[::1\]))/.test(location.href);
 
@@ -361,12 +379,13 @@ const bag = () => Object.create(null);
 const safeId = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(v);
 
 /* ---------- Model construction ---------- */
-const mkBlock = (name, cat, len, hue, target = null) => ({ id: uid(), name, cat, len, hue, target });
+const mkBlock = (name, cat, len, hue, target = null) => ({ id: uid(), name, cat, len, hue, target, note: '' });
+const mkTypes = (lens = {}) => BUILTIN.map(t => ({ ...t, len: lens[t.id] ?? t.len, note: '' }));
 const mkItem = (blockId, dur = null, gap = null) => ({ id: uid(), t: 'b', blockId, dur, gap });
 const mkSplit = (lanes, gap = null) => ({ id: uid(), t: 's', gap, lanes });
 const emptyDays = start => Array.from({ length: 14 }, () => ({ start, items: [] }));
 function mkModel(name, blocks, opts = {}) {
-  return { id: uid(), name, passing: opts.passing ?? 5, defaultStart: opts.start ?? 480, blockLen: opts.len ?? 50, classTarget: opts.classTarget ?? null, blocks: [...blocks], days: emptyDays(opts.start ?? 480) };
+  return { id: uid(), name, passing: opts.passing ?? 5, defaultStart: opts.start ?? 480, classTarget: opts.classTarget ?? null, types: mkTypes(opts.lens), blocks: [...blocks], days: emptyDays(opts.start ?? 480) };
 }
 /* Names are compared without case or surrounding spaces. A taken name gets a number added. */
 const nameKey = s => String(s).trim().toLowerCase();
@@ -382,25 +401,25 @@ function uniqueName(name, others) {
 }
 const modelNames = exceptId => S.models.filter(m => m.id !== exceptId).map(m => m.name);
 const blockNames = (m, exceptId) => m.blocks.filter(b => b.id !== exceptId).map(b => b.name);
+const typeNames = (m, exceptId) => m.types.filter(t => t.id !== exceptId).map(t => t.name);
+const typeById = (m, id) => m.types.find(t => t.id === id);
+// For display: a block whose type is missing shows as Other.
+const typeOf = (m, id) => typeById(m, id) ?? typeById(m, 'other');
+const typeName = (m, id) => typeOf(m, id)?.name ?? 'Other';
+const isAcad = (m, b) => !!b && !!typeOf(m, b.cat)?.academic;
+// Notes are plain text: line breaks are kept, other control characters are dropped.
+const cleanNote = v => typeof v === 'string' ? v.replace(/\r\n?/g, '\n').replace(/\t/g, ' ').replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, '').slice(0, NOTE_MAX).trim() : '';
 // Names sort with their numbers in order, so Period 2 comes before Period 10.
 const natCmp = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
 /* Blocks grouped by type, in type order, sorted by name inside each type. Every list of blocks
    (tray, dropdowns, Length table, ledger, Compare, totals export) uses this order. */
 function typeGroups(m, withEmpty = false) {
-  return Object.keys(CATS).map(c => ({ id: c, name: CATS[c], blocks: m.blocks.filter(b => b.cat === c).sort((a, b) => natCmp(a.name, b.name)) }))
+  return m.types.map(t => ({ id: t.id, name: t.name, type: t, blocks: m.blocks.filter(b => b.cat === t.id).sort((a, b) => natCmp(a.name, b.name)) }))
     .filter(g => withEmpty || g.blocks.length);
 }
 const sortedBlocks = m => typeGroups(m).flatMap(g => g.blocks);
 const blockOptions = (m, selId) => typeGroups(m).map(g => `<optgroup label="${esc(g.name)}">${g.blocks.map(b => `<option value="${esc(b.id)}"${b.id === selId ? ' selected' : ''}>${esc(b.name)}</option>`).join('')}</optgroup>`).join('');
-// Models saved before the model-wide default existed take their most common class length.
-function guessLen(m) {
-  const counts = {};
-  m.blocks.filter(b => b.cat === 'class').forEach(b => { counts[b.len] = (counts[b.len] || 0) + 1; });
-  const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-  return best ? +best[0] : 50;
-}
 function normalizeModel(m, otherModelNames) {
-  if (!(m.blockLen >= MIN_LEN)) m.blockLen = guessLen(m);
   m.name = uniqueName(m.name, otherModelNames);
   m.blocks.forEach((b, i) => { b.name = uniqueName(b.name, m.blocks.slice(0, i).map(x => x.name)); });
   return m;
@@ -409,7 +428,7 @@ function sampleModels() {
   const p = [1, 2, 3, 4, 5, 6, 7].map((n, i) => mkBlock(`Period ${n}`, 'class', 47, HUES[i], n === 1 ? 450 : n === 7 ? 470 : null));
   const lunch = mkBlock('Lunch', 'lunch', 30, HUES[9]);
   const adv = mkBlock('Advisory', 'advisory', 25, HUES[10]);
-  const a = mkModel('Sample: seven periods', [...p, lunch, adv], { classTarget: 3150, len: 47 });
+  const a = mkModel('Sample: seven periods', [...p, lunch, adv], { classTarget: 3150, lens: { class: 47 } });
   for (const w of [0, 7]) for (const i of [1, 2, 3, 4, 5]) {
     const day = a.days[w + i];
     if (i === 3) { // Late-start Wednesday with shorter periods
@@ -422,7 +441,7 @@ function sampleModels() {
   const letters = 'ABCDEFGH'.split('');
   const bl = letters.map((l, i) => mkBlock(`Block ${l}`, 'class', 85, HUES[i]));
   const la = mkBlock('Lunch A', 'lunch', 30, HUES[9]), lb = mkBlock('Lunch B', 'lunch', 30, HUES[11]);
-  const b = mkModel('Sample: A/B block rotation', [...bl, la, lb], { classTarget: 3000, len: 85 });
+  const b = mkModel('Sample: A/B block rotation', [...bl, la, lb], { classTarget: 3000, lens: { class: 85 } });
   const dayOf = (x, y, z, q) => [mkItem(x.id), mkItem(y.id),
     mkSplit([[mkItem(la.id), mkItem(z.id)], [mkItem(z.id), mkItem(lb.id)]]), mkItem(q.id)];
   [1, 2, 3, 4, 5].forEach(i => {
@@ -455,8 +474,10 @@ function layoutSeq(m, items, t0, top) {
 }
 const R = () => ({ lo: 0, hi: 0 });
 const addTo = (map, k, lo, hi) => { const r = map[k] || (map[k] = R()); r.lo += lo; r.hi += hi; };
+/* acad is class time: every type that counts as class time, added up. It is worked out lane by lane like
+   passing time, so a split gives the lowest and highest a student can get, not a sum of each type's lowest. */
 function seqStats(m, items, top) {
-  const s = { blocks: bag(), cats: bag(), pass: R() };
+  const s = { blocks: bag(), cats: bag(), pass: R(), acad: R() };
   items.forEach((it, i) => {
     const g = gapOf(m, it, i, top);
     s.pass.lo += g; s.pass.hi += g;
@@ -465,6 +486,7 @@ function seqStats(m, items, top) {
       if (!b) return;
       const d = durOf(m, it);
       addTo(s.blocks, b.id, d, d); addTo(s.cats, b.cat, d, d);
+      if (isAcad(m, b)) { s.acad.lo += d; s.acad.hi += d; }
       return;
     }
     // A split is simultaneous: a person is in one lane, so lanes never add together.
@@ -480,12 +502,14 @@ function seqStats(m, items, top) {
     });
     s.pass.lo += Math.min(...L.map(x => x.pass.lo));
     s.pass.hi += Math.max(...L.map(x => x.pass.hi));
+    s.acad.lo += Math.min(...L.map(x => x.acad.lo));
+    s.acad.hi += Math.max(...L.map(x => x.acad.hi));
   });
   return s;
 }
 const dayStats = (m, d) => seqStats(m, m.days[d].items, true);
 function totals(m) {
-  const part = () => ({ blocks: bag(), cats: bag(), pass: R() });
+  const part = () => ({ blocks: bag(), cats: bag(), pass: R(), acad: R() });
   const t = { w: [part(), part()], all: part() };
   m.days.forEach((_, d) => {
     const s = dayStats(m, d);
@@ -493,6 +517,7 @@ function totals(m) {
       for (const k in s.blocks) addTo(tgt.blocks, k, s.blocks[k].lo, s.blocks[k].hi);
       for (const k in s.cats) addTo(tgt.cats, k, s.cats[k].lo, s.cats[k].hi);
       tgt.pass.lo += s.pass.lo; tgt.pass.hi += s.pass.hi;
+      tgt.acad.lo += s.acad.lo; tgt.acad.hi += s.acad.hi;
     }
   });
   return t;
@@ -518,7 +543,7 @@ function someLaneBlocks(m) {
 }
 function shortfalls(m, t = totals(m)) {
   const out = [];
-  const c = targetState(m.classTarget, t.all.cats.class);
+  const c = targetState(m.classTarget, t.all.acad);
   if (c && !c.met) out.push('Class time');
   m.blocks.forEach(b => { const s = targetState(b.target, t.all.blocks[b.id]); if (s && !s.met) out.push(b.name); });
   return out;
@@ -591,6 +616,7 @@ function restore(from, to) {
   S.models[i] = JSON.parse(s.json); S.activeId = s.id;
   if (S.sel?.kind === 'item' && !findItem(M(), S.sel.id)) S.sel = null;
   if (S.sel?.kind === 'block' && !blockOf(M(), S.sel.id)) S.sel = null;
+  if (S.sel?.kind === 'type' && !typeById(M(), S.sel.id)) S.sel = null;
   persist(); render();
 }
 let toastTimer;
@@ -611,7 +637,7 @@ function render() { dropStaleSel(); renderTop(); renderLeft(); renderCenter(); r
 function dropStaleSel() {
   const m = M(), s = S.sel;
   if (!s) return;
-  if ((s.kind === 'item' && !findItem(m, s.id)) || (s.kind === 'block' && !blockOf(m, s.id)) || (s.kind === 'day' && !m.days[s.d])) S.sel = null;
+  if ((s.kind === 'item' && !findItem(m, s.id)) || (s.kind === 'block' && !blockOf(m, s.id)) || (s.kind === 'type' && !typeById(m, s.id)) || (s.kind === 'day' && !m.days[s.d])) S.sel = null;
 }
 /* Redrawing replaces the panels, which would drop keyboard focus (Tab would land nowhere).
    This finds the focused field or button again by its id or data attributes and refocuses it. */
@@ -648,15 +674,19 @@ function renderLeft() {
     <div class="panelhead"><h2>Blocks</h2><button class="btn sm" data-act="addBlock">Add</button></div>
     <div class="field"><label for="blockCount">Number of blocks</label>
       <input class="txt num" id="blockCount" type="number" min="1" max="40" value="${m.blocks.length}" data-f="blockCount"></div>
-    <p class="hint">Drag a block onto a day. Click one to rename it or set its length.</p>
-    <div class="tray">${typeGroups(m).map(g => `
+    <p class="hint">Drag a block onto a day. Click a block to rename it or set its length, or a type's name for that type's settings.</p>
+    <div class="tray">${typeGroups(m, true).map(g => `
       <div class="tgroup" role="group" aria-label="${esc(g.name)} blocks">
-        <div class="thead"><span class="tname">${esc(g.name)}</span><span class="tcount num">${g.blocks.length}</span></div>
+        <div class="thead${S.sel?.kind === 'type' && S.sel.id === g.id ? ' on' : ''}">
+          <button class="tname" data-act="selType" data-type="${esc(g.id)}" title="${esc(g.name)}: ${g.type.academic ? 'counts as class time' : 'not class time'}, new blocks ${g.type.len} min. Click for type settings.">${esc(g.name)}</button>
+          <span class="tlen num" title="Default length">${g.type.len}m</span>
+          <button class="tadd" data-act="addBlockOfType" data-type="${esc(g.id)}" title="Add a ${esc(g.name)} block" aria-label="Add a ${esc(g.name)} block">+</button></div>
         ${g.blocks.map(b => `
-        <div class="chip${S.sel?.kind === 'block' && S.sel.id === b.id ? ' on' : ''}" style="--h:${b.hue}" ${b.cat !== 'class' ? 'data-noncat' : ''}
-          data-pal="${esc(b.id)}" role="button" tabindex="0" title="${esc(b.name)}: ${CATS[b.cat]}, placed ${usedIn(b.id)} times">
+        <div class="chip${S.sel?.kind === 'block' && S.sel.id === b.id ? ' on' : ''}" style="--h:${b.hue}" ${isAcad(m, b) ? '' : 'data-noncat'}
+          data-pal="${esc(b.id)}" role="button" tabindex="0" title="${esc(b.name)}: ${esc(g.name)}, placed ${usedIn(b.id)} times">
           <span class="nm">${esc(b.name)}</span><span class="ln">${b.len}m</span></div>`).join('')}
       </div>`).join('')}</div>
+    <div class="btnrow"><button class="btn sm" data-act="addType" ${m.types.length >= MAX.types ? 'disabled' : ''}>Add type</button></div>
   </div>
   <div class="panel">
     <h2>Model settings</h2>
@@ -665,10 +695,6 @@ function renderLeft() {
       <div class="field"><label for="mPass">Passing (min)</label><input class="txt num" id="mPass" type="number" min="0" max="60" value="${m.passing}" data-f="mPass"></div>
       <div class="field"><label for="mStart">Day starts</label><input class="txt num" id="mStart" type="time" step="300" value="${hhmm(m.defaultStart)}" data-f="mStart"></div>
     </div>
-    <div class="field"><label for="mLen">Default block length (min)</label>
-      <div class="inline"><input class="txt num" id="mLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${m.blockLen}" data-f="mLen">
-      <button class="btn sm" data-act="applyLenDlg">Apply to all…</button></div>
-      <p class="hint">New blocks start at this length.</p></div>
     <div class="field"><label for="mTarget">Class time target, two-week total (min)</label>
       <input class="txt num" id="mTarget" type="number" min="0" placeholder="None" value="${m.classTarget ?? ''}" data-f="mTarget"></div>
     <div class="field"><label for="zoom">Calendar size</label>
@@ -699,14 +725,14 @@ function weekHTML(m, w, lo, hi, t) {
     const on = S.sel?.kind === 'day' && S.sel.d === d;
     return `<button class="dayhd${on ? ' on' : ''}" data-act="selDay" data-d="${d}" title="${dayName(d)}: day settings">
       <span class="d">${DAYS[d % 7]}</span>
-      <span class="m">${has ? `${fmtR(s.cats.class)} class` : 'No school'}</span>
+      <span class="m">${has ? `${fmtR(s.acad)} class` : 'No school'}</span>
       ${has ? `<span class="m">${clock(m.days[d].start)}–${clock(L[L.length - 1].end)}</span>` : '<span class="m">&nbsp;</span>'}</button>`;
   }).join('');
   const colsHTML = ds.map(d => `<div class="daycol${S.sel?.kind === 'day' && S.sel.d === d ? ' on' : ''}" data-col="${d}" style="height:${H}px;${lines}">
     ${m.days[d].items.length ? seqHTML(m, m.days[d].items, m.days[d].start, lo, true, d) : '<span class="empty">Drop blocks here</span>'}</div>`).join('');
   return `<section class="week" aria-label="Week ${w + 1}">
     <div class="weekhead"><h2>Week ${w + 1}</h2>
-      <span class="sum">Class time <b>${fmtR(t.w[w].cats.class)}</b> ${unitLabel()}</span>
+      <span class="sum">Class time <b>${fmtR(t.w[w].acad)}</b> ${unitLabel()}</span>
       <span class="sum">Passing <b>${fmtR(t.w[w].pass)}</b></span>
       ${w === 1 ? '<button class="btn sm" data-act="copyWeek">Copy Week 1 here</button>' : ''}</div>
     <div class="gridscroll"><div class="grid" style="grid-template-columns:44px ${cols}">
@@ -733,7 +759,7 @@ function seqHTML(m, items, t0, origin, top, d) {
       const b = blockOf(m, it.blockId);
       if (b) {
         const on = S.sel?.kind === 'item' && S.sel.id === it.id, mins = end - start, changed = it.dur != null && it.dur !== b.len;
-        out += `<div class="blk${on ? ' on' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px" ${b.cat !== 'class' ? 'data-noncat' : ''} data-item="${esc(it.id)}" tabindex="0" role="button"
+        out += `<div class="blk${on ? ' on' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px" ${isAcad(m, b) ? '' : 'data-noncat'} data-item="${esc(it.id)}" tabindex="0" role="button"
           aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes" title="${esc(b.name)} · ${clock(start)}–${clock(end)} · ${mins} min${changed ? ` (default ${b.len})` : ''}">
           <span class="rz t" data-rz="t"></span>
           <span class="nm">${esc(b.name)}</span>
@@ -750,7 +776,7 @@ function renderRight() {
   $('#right').innerHTML = inspectorHTML() + ledgerHTML();
 }
 function ledgerHTML() {
-  const m = M(), t = totals(m), short = shortfalls(m, t), cls = targetState(m.classTarget, t.all.cats.class), partial = someLaneBlocks(m);
+  const m = M(), t = totals(m), short = shortfalls(m, t), cls = targetState(m.classTarget, t.all.acad), partial = someLaneBlocks(m);
   const row = (label, a, b, c) => `<td class="n">${fmtR(a)}</td><td class="n">${fmtR(b)}</td><td class="n">${fmtR(c)}</td>`;
   const mark = '<span class="lanemark" title="In only some lanes of a split. This total counts the students in the lanes that have it." aria-label="in only some lanes">◐</span>';
   const blockRows = blocks => blocks.map(b => {
@@ -762,9 +788,9 @@ function ledgerHTML() {
     <div class="panelhead"><h2>Class time</h2>
       <div class="tabs" style="font-size:12px"><button data-act="unit" data-u="min" aria-selected="${S.unit === 'min'}" style="padding:1px 8px">min</button><button data-act="unit" data-u="hrs" aria-selected="${S.unit === 'hrs'}" style="padding:1px 8px">h:mm</button></div></div>
     <div class="stats">
-      <div class="stat"><span class="k">Week 1</span>${tileR(t.w[0].cats.class)}</div>
-      <div class="stat"><span class="k">Week 2</span>${tileR(t.w[1].cats.class)}</div>
-      <div class="stat main"><span class="k">Two-week total</span>${tileR(t.all.cats.class)}</div>
+      <div class="stat"><span class="k">Week 1</span>${tileR(t.w[0].acad)}</div>
+      <div class="stat"><span class="k">Week 2</span>${tileR(t.w[1].acad)}</div>
+      <div class="stat main"><span class="k">Two-week total</span>${tileR(t.all.acad)}</div>
     </div>
     ${cls ? meterHTML(cls) : ''}
     ${short.length ? `<div><span class="pill short">${short.length} target${short.length > 1 ? 's' : ''} short</span> <span class="hint">${esc(short.join(', '))}</span></div>` : ''}
@@ -780,7 +806,7 @@ function ledgerHTML() {
 }
 // A range is too wide for the small week boxes, so it may wrap after the dash instead of being cut off.
 const tileR = r => { const s = fmtR(r); return s.includes('–') ? `<span class="v rng">${s.replace('–', '–<wbr>')}</span>` : `<span class="v">${s}</span>`; };
-const hasRange = t => [...Object.values(t.all.blocks), ...Object.values(t.all.cats), t.all.pass].some(r => r.lo !== r.hi);
+const hasRange = t => [...Object.values(t.all.blocks), ...Object.values(t.all.cats), t.all.pass, t.all.acad].some(r => r.lo !== r.hi);
 function meterHTML(s) {
   return `<div><div class="tgt"><span>Target ${fmt(s.target)} over two weeks</span>
     <span class="pill ${s.met ? 'met' : 'short'}">${s.met ? 'Met' : `${fmt(s.short)} short`}</span></div>
@@ -790,6 +816,7 @@ function inspectorHTML() {
   const m = M(), sel = S.sel;
   if (!sel) return '';
   if (sel.kind === 'block') return blockInspector(m, blockOf(m, sel.id));
+  if (sel.kind === 'type') return typeInspector(m, typeById(m, sel.id));
   if (sel.kind === 'day') return dayInspector(m, sel.d);
   const f = findItem(m, sel.id);
   if (!f) return '';
@@ -802,13 +829,27 @@ function blockInspector(m, b) {
   return `<div class="panel insp"><div class="panelhead"><h2>Block</h2>${closeBtn}</div>
     <div class="field"><label for="bName">Name</label><input class="txt" id="bName" maxlength="60" value="${esc(b.name)}" data-f="bName"></div>
     <div class="fieldrow">
-      <div class="field"><label for="bCat">Type</label><select class="txt" id="bCat" data-f="bCat">${Object.entries(CATS).map(([k, v]) => `<option value="${k}"${k === b.cat ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+      <div class="field"><label for="bCat">Type</label><select class="txt" id="bCat" data-f="bCat">${m.types.map(t => `<option value="${esc(t.id)}"${t.id === b.cat ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
       <div class="field"><label for="bLen">Default length (min)</label><input class="txt num" id="bLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${b.len}" data-f="bLen"></div>
     </div>
     <div class="field"><label for="bTarget">Target, two-week total (min)</label><input class="txt num" id="bTarget" type="number" min="0" placeholder="None" value="${b.target ?? ''}" data-f="bTarget"></div>
     <div class="field"><span class="lab">Color</span><div class="btnrow">${HUES.map(h => `<button class="chip" style="--h:${h};width:22px;height:22px;padding:0;cursor:pointer" data-act="hue" data-h="${h}" aria-label="Color ${h}"${h === b.hue ? ' aria-pressed="true"' : ''}>${h === b.hue ? '<span style="margin:auto">✓</span>' : ''}</button>`).join('')}</div></div>
     <p class="hint">Placed ${n} time${n === 1 ? '' : 's'}. Changing the default updates every placement without its own length.</p>
     <div class="btnrow"><button class="btn sm danger" data-act="delBlock">Delete block</button></div></div>`;
+}
+function typeInspector(m, t) {
+  if (!t) return '';
+  const n = m.blocks.filter(b => b.cat === t.id).length, builtin = BUILTIN_IDS.has(t.id);
+  return `<div class="panel insp"><div class="panelhead"><h2>Type</h2>${closeBtn}</div>
+    <div class="field"><label for="tName">Name</label><input class="txt" id="tName" maxlength="${TYPE_NAME_MAX}" value="${esc(t.name)}" data-f="tName"${builtin ? ' disabled' : ''}>
+      ${builtin ? '<p class="hint">Built-in types keep their names.</p>' : ''}</div>
+    <div class="field"><label for="tLen">Default length (min)</label><input class="txt num" id="tLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${t.len}" data-f="tLen">
+      <p class="hint">New ${esc(t.name)} blocks start at this length.</p></div>
+    <label class="check"><input type="checkbox" id="tAcad" data-f="tAcad"${t.academic ? ' checked' : ''}> Counts as class time</label>
+    <p class="hint">Types that count as class time are added into class time and the class target.</p>
+    <p class="hint">${n} block${n === 1 ? '' : 's'} of this type.</p>
+    <div class="btnrow"><button class="btn sm" data-act="addBlockOfType" data-type="${esc(t.id)}">Add a block</button>
+      ${builtin ? '' : '<button class="btn sm danger" data-act="delType">Delete type</button>'}</div></div>`;
 }
 function dayInspector(m, d) {
   const day = m.days[d];
@@ -917,27 +958,32 @@ function renderCompare(c) {
   const head = txt => `<tr><th class="stick" colspan="${ms.length + 1}" style="text-align:left">${txt}</th></tr>`;
   // A model with no time of some kind has 0 minutes of it, not a blank, so it still gets a difference.
   const z = r => r || R();
-  const catRows = Object.keys(CATS).filter(k => k !== 'class' && T.some(t => t.all.cats[k])).map(k => line(`${CATS[k]}, two-week`, i => z(T[i].all.cats[k])));
-  // Blocks are matched by name and type, so a "Block A" class is never compared with a "Block A" lunch.
-  const keyOf = b => `${nameKey(b.name)}|${b.cat}`;
+  // Each model has its own types, so types are matched by name. A model without a type shows –;
+  // a model that has the type but never uses it shows 0.
+  const tKey = (m, id) => nameKey(typeName(m, id));
+  const typeRows = [], seenT = new Set();
+  ms.forEach(m => m.types.forEach(t => { const k = nameKey(t.name); if (!seenT.has(k)) { seenT.add(k); typeRows.push({ k, name: t.name }); } }));
+  const typeTotal = (i, k) => { const t = ms[i].types.find(x => nameKey(x.name) === k); return t ? z(T[i].all.cats[t.id]) : null; };
+  const catRows = typeRows.filter(r => ms.some((_, i) => { const v = typeTotal(i, r.k); return v && v.hi > 0; })).map(r => line(`${esc(r.name)}, two-week`, i => typeTotal(i, r.k)));
+  // Blocks are matched by name and type name, so a "Block A" class is never compared with a "Block A" lunch.
+  const keyOf = (m, b) => `${nameKey(b.name)}|${tKey(m, b.cat)}`;
   const groups = new Map();
-  ms.flatMap(m => m.blocks).forEach(b => { if (!groups.has(keyOf(b))) groups.set(keyOf(b), { key: keyOf(b), name: b.name.trim(), cat: b.cat }); });
+  ms.forEach(m => m.blocks.forEach(b => { const k = keyOf(m, b); if (!groups.has(k)) groups.set(k, { key: k, name: b.name.trim(), tk: tKey(m, b.cat) }); }));
   // Listed by type, then by name, the same order as the block tray.
-  const catOrder = Object.keys(CATS);
-  const byType = catOrder.map(c => ({ name: CATS[c], rows: [...groups.values()].filter(g => g.cat === c).sort((a, b) => natCmp(a.name, b.name)) })).filter(x => x.rows.length);
+  const byType = typeRows.map(r => ({ name: r.name, rows: [...groups.values()].filter(g => g.tk === r.k).sort((a, b) => natCmp(a.name, b.name)) })).filter(x => x.rows.length);
   const sub = txt => `<tr class="sub2"><td class="stick">${esc(txt)}</td><td colspan="${ms.length}"></td></tr>`;
   const byKey = (i, key, w) => {
-    const b = ms[i].blocks.find(x => keyOf(x) === key);
+    const b = ms[i].blocks.find(x => keyOf(ms[i], x) === key);
     return b ? z(w.blocks[b.id]) : null;
   };
   const status = ms.map((m, i) => { const s = shortfalls(m, T[i]); return s.length ? `<span class="pill short" title="${esc(s.join(', '))}">${s.length} short</span>` : (m.classTarget != null || m.blocks.some(b => b.target != null)) ? '<span class="pill met">All met</span>' : '<span class="hint">No targets</span>'; });
   c.innerHTML = `<div class="cmp">${pick}
-    <div class="minis">${ms.map((m, i) => `<div class="mini"><h3>${esc(m.name)}</h3>${miniHTML(m, lo, hi)}<span class="hint">${fmtR(T[i].all.cats.class)} ${unitLabel()} class time over two weeks</span></div>`).join('')}</div>
+    <div class="minis">${ms.map((m, i) => `<div class="mini"><h3>${esc(m.name)}</h3>${miniHTML(m, lo, hi)}<span class="hint">${fmtR(T[i].all.acad)} ${unitLabel()} class time over two weeks</span></div>`).join('')}</div>
     <div class="tablewrap"><table class="lt"><thead><tr><th class="stick">${unitLabel() === 'min' ? 'Minutes' : 'Hours'}</th>${ms.map(m => `<th>${esc(m.name)}</th>`).join('')}</tr></thead><tbody>
       ${head('Class time')}
-      ${line('Week 1', i => z(T[i].w[0].cats.class))}${line('Week 2', i => z(T[i].w[1].cats.class))}${line('Two-week total', i => z(T[i].all.cats.class))}
+      ${line('Week 1', i => z(T[i].w[0].acad))}${line('Week 2', i => z(T[i].w[1].acad))}${line('Two-week total', i => z(T[i].all.acad))}
       <tr><td class="stick">Targets</td>${status.map(s => `<td>${s}</td>`).join('')}</tr>
-      ${head('Other time')}${catRows.join('')}${line('Passing, two-week', i => T[i].all.pass)}
+      ${head('Time by type')}${catRows.join('')}${line('Passing, two-week', i => T[i].all.pass)}
       ${head('Named blocks, two-week total')}${byType.map(x => sub(x.name) + x.rows.map(g => line(esc(g.name), i => byKey(i, g.key, T[i].all))).join('')).join('')}
     </tbody></table></div>
     ${ms.length > 1 ? `<p class="note">Differences compare each model with ${esc(ms[0].name)}. When a total is a range, the low and high ends are compared separately. Blocks with the same name and type are matched across models; – means the model has no such block.</p>` : ''}</div>`;
@@ -964,10 +1010,18 @@ function nextBlockName(m) {
   let i = m.blocks.length + 1; while (names.has(`Block ${i}`)) i++;
   return `Block ${i}`;
 }
-function addBlockTo(m) {
+// A new block takes its type's default length. Class blocks continue the model's naming (Period 8, Block I);
+// other types start from the type's name (Lunch, Lunch (2)).
+function addBlockTo(m, cat = 'class') {
   const used = new Set(m.blocks.map(b => b.hue)), hue = HUES.find(h => !used.has(h)) ?? HUES[m.blocks.length % HUES.length];
-  const b = mkBlock(uniqueName(nextBlockName(m), blockNames(m)), 'class', m.blockLen ?? guessLen(m), hue);
+  const t = typeOf(m, cat);
+  const b = mkBlock(uniqueName(t.id === 'class' ? nextBlockName(m) : t.name, blockNames(m)), t.id, t.len, hue);
   m.blocks.push(b); return b;
+}
+// Deleting a type moves its blocks to another type first.
+function removeType(m, id, moveTo) {
+  m.blocks.forEach(b => { if (b.cat === id) b.cat = moveTo; });
+  m.types = m.types.filter(t => t.id !== id);
 }
 function removeBlock(m, id) {
   const strip = seq => seq.filter(it => it.t !== 'b' || it.blockId !== id);
@@ -1005,6 +1059,28 @@ const actions = {
   deselect() { S.sel = null; render(); },
   selDay(el) { S.sel = { kind: 'day', d: +el.dataset.d }; render(); },
   addBlock() { let b; commit(m => { b = addBlockTo(m); }); S.sel = { kind: 'block', id: b.id }; render(); $('#bName')?.select(); },
+  addBlockOfType(el) { let b; commit(m => { b = addBlockTo(m, el.dataset.type); }); S.sel = { kind: 'block', id: b.id }; render(); $('#bName')?.select(); },
+  selType(el) { S.sel = { kind: 'type', id: el.dataset.type }; render(); },
+  addType() {
+    if (M().types.length >= MAX.types) return toast(`A model can have at most ${MAX.types} types.`);
+    let t; commit(m => { t = { id: uid(), name: uniqueName('New type', typeNames(m)), len: 30, academic: false, note: '' }; m.types.push(t); });
+    S.sel = { kind: 'type', id: t.id }; render(); $('#tName')?.select();
+  },
+  delType() {
+    const m = M(), t = typeById(m, S.sel.id);
+    if (!t || BUILTIN_IDS.has(t.id)) return;
+    const n = m.blocks.filter(b => b.cat === t.id).length;
+    const go = to => { S.sel = null; commit(mm => removeType(mm, t.id, to)); toast(`Deleted the ${t.name} type`); };
+    if (!n) return go('other');
+    const others = m.types.filter(x => x.id !== t.id);
+    openDlg(`<form class="dlg" id="dtf"><h2>Delete the ${esc(t.name)} type?</h2>
+      <p>${n} block${n > 1 ? 's have' : ' has'} this type. ${n > 1 ? 'They keep their names, lengths' : 'It keeps its name, length'} and places on the calendar, and ${n > 1 ? 'move' : 'moves'} to another type.</p>
+      <div class="field"><label for="dtTo">Move ${n > 1 ? 'them' : 'it'} to</label><select class="txt" id="dtTo">${others.map(x => `<option value="${esc(x.id)}"${x.id === 'other' ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+      <div class="dlgbtns"><button type="button" class="btn" id="dtNo">Cancel</button><button type="submit" class="btn primary">Delete type</button></div></form>`, d => {
+      $('#dtNo', d).onclick = () => dlg.close();
+      $('#dtf', d).onsubmit = e => { e.preventDefault(); const to = $('#dtTo', d).value; dlg.close(); go(to); };
+    });
+  },
   hue(el) { commit(m => { blockOf(m, S.sel.id).hue = +el.dataset.h; }); },
   delBlock() {
     const m = M(), b = blockOf(m, S.sel.id), n = placements(m, b.id).length;
@@ -1055,7 +1131,6 @@ const actions = {
       persist(); render();
     });
   },
-  applyLenDlg() { applyLenDlg(); },
   exportDlg() { exportDlg(); },
   importDlg() { importDlg(); },
 };
@@ -1081,11 +1156,18 @@ const fields = {
     commit(m => { m.name = name; });
     if (name !== want) toast(`Another model is already named ${want}, so this one is ${name}.`);
   },
-  mLen(v) {
+  tName(v) {
+    const want = v.trim().slice(0, TYPE_NAME_MAX); if (!want) return queueRender();
+    const id = S.sel.id, name = uniqueName(want, typeNames(M(), id));
+    commit(m => { const t = typeById(m, id); if (t && !BUILTIN_IDS.has(id)) t.name = name; });
+    if (name !== want) toast(`Another type is already named ${want}, so this one is ${name}.`);
+  },
+  tLen(v) {
     const n = within(v, LIM.len);
     if (n == null) { toast(rangeMsg('Length', LIM.len)); return queueRender(); }
-    commit(m => { m.blockLen = n; });
+    commit(m => { const t = typeById(m, S.sel.id); if (t) t.len = n; });
   },
+  tAcad(v, el) { const on = el.checked; commit(m => { const t = typeById(m, S.sel.id); if (t) t.academic = on; }); },
   mPass(v) { const n = within(v, LIM.pass); if (n != null) commit(m => { m.passing = n; }); else { toast(rangeMsg('Passing', LIM.pass)); queueRender(); } },
   mStart(v) {
     const t = parseTime(v); if (t == null) return queueRender();
@@ -1373,7 +1455,7 @@ function newModelDlg() {
       const style = $('#nStyle', d).value, start = parseTime($('#nStart', d).value) ?? 480, lunch = posInt($('#nLunch', d).value);
       const name = i => style === 'period' ? `Period ${i + 1}` : `Block ${i < 26 ? String.fromCharCode(65 + i) : i + 1}`;
       const blocks = Array.from({ length: n }, (_, i) => mkBlock(name(i), 'class', len, HUES[i % HUES.length]));
-      const m = mkModel(uniqueName($('#nName', d).value.trim() || 'New schedule model', modelNames()), blocks, { passing: fit($('#nPass', d).value, LIM.pass, 5), start, len });
+      const m = mkModel(uniqueName($('#nName', d).value.trim() || 'New schedule model', modelNames()), blocks, { passing: fit($('#nPass', d).value, LIM.pass, 5), start, lens: { class: len, ...(lunch ? { lunch } : {}) } });
       let lb = null;
       if (lunch) { lb = mkBlock('Lunch', 'lunch', lunch, HUES[9]); m.blocks.push(lb); }
       if ($('#nFill', d).checked) [1, 2, 3, 4, 5, 8, 9, 10, 11, 12].forEach(i => {
@@ -1397,7 +1479,7 @@ const csv = rows => rows.map(r => r.map(csvCell).join(',')).join('\r\n');
 const plainR = r => !r ? 0 : r.lo === r.hi ? r.lo : `${r.lo}-${r.hi}`;
 function scheduleCSV(m) {
   const rows = [['Week', 'Day', 'Lane', 'Start', 'End', 'Block', 'Type', 'Minutes', 'Passing before']];
-  const add = (d, lane, x, extra = 0) => { const b = blockOf(m, x.it.blockId); rows.push([d < 7 ? 1 : 2, DAYS[d % 7], lane, hhmm(x.start), hhmm(x.end), b.name, CATS[b.cat], x.end - x.start, x.gap + extra]); };
+  const add = (d, lane, x, extra = 0) => { const b = blockOf(m, x.it.blockId); rows.push([d < 7 ? 1 : 2, DAYS[d % 7], lane, hhmm(x.start), hhmm(x.end), b.name, typeName(m, b.cat), x.end - x.start, x.gap + extra]); };
   m.days.forEach((day, d) => layoutSeq(m, day.items, day.start, true).forEach(x => {
     if (x.it.t === 'b') add(d, '', x);
     else x.it.lanes.forEach((l, li) => layoutSeq(m, l, x.start, false).forEach((y, yi) => add(d, li + 1, y, yi === 0 ? x.gap : 0)));
@@ -1407,16 +1489,16 @@ function scheduleCSV(m) {
 function totalsCSV(m) {
   const t = totals(m), rows = [['Item', 'Type', 'Week 1 min', 'Week 2 min', 'Two-week min', 'Two-week target', 'Status']];
   const st = s => !s ? '' : s.met ? 'Met' : `${s.short} short`;
-  rows.push(['All class time', 'Class', plainR(t.w[0].cats.class), plainR(t.w[1].cats.class), plainR(t.all.cats.class), m.classTarget ?? '', st(targetState(m.classTarget, t.all.cats.class))]);
-  sortedBlocks(m).forEach(b => rows.push([b.name, CATS[b.cat], plainR(t.w[0].blocks[b.id]), plainR(t.w[1].blocks[b.id]), plainR(t.all.blocks[b.id]), b.target ?? '', st(targetState(b.target, t.all.blocks[b.id]))]));
+  rows.push(['All class time', 'Class time', plainR(t.w[0].acad), plainR(t.w[1].acad), plainR(t.all.acad), m.classTarget ?? '', st(targetState(m.classTarget, t.all.acad))]);
+  sortedBlocks(m).forEach(b => rows.push([b.name, typeName(m, b.cat), plainR(t.w[0].blocks[b.id]), plainR(t.w[1].blocks[b.id]), plainR(t.all.blocks[b.id]), b.target ?? '', st(targetState(b.target, t.all.blocks[b.id]))]));
   rows.push(['Passing', 'Passing', plainR(t.w[0].pass), plainR(t.w[1].pass), plainR(t.all.pass), '', '']);
   return csv(rows);
 }
 function exportDlg() {
   const m = M();
   const kinds = {
-    model: { label: 'This model, to re-import (.json)', ext: 'json', text: () => JSON.stringify({ app: 'bell-schedule-modeler', version: 1, models: [m] }, null, 1) },
-    all: { label: 'All models, to re-import (.json)', ext: 'json', text: () => JSON.stringify({ app: 'bell-schedule-modeler', version: 1, models: S.models }, null, 1) },
+    model: { label: 'This model, to re-import (.json)', ext: 'json', text: () => JSON.stringify({ app: 'bell-schedule-modeler', version: FILE_VERSION, models: [m] }, null, 1) },
+    all: { label: 'All models, to re-import (.json)', ext: 'json', text: () => JSON.stringify({ app: 'bell-schedule-modeler', version: FILE_VERSION, models: S.models }, null, 1) },
     bell: { label: 'Bell schedule (.csv)', ext: 'csv', text: () => scheduleCSV(m) },
     totals: { label: 'Totals by block (.csv)', ext: 'csv', text: () => totalsCSV(m) },
   };
@@ -1440,40 +1522,6 @@ function exportDlg() {
     };
   });
 }
-function applyLenDlg() {
-  const m = M();
-  openDlg(`<form id="af"><h2>Set every block to one length</h2>
-    <div class="field"><label for="aLen">Length (min)</label><input class="txt num" id="aLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${m.blockLen}"></div>
-    <label><input type="checkbox" id="aAll"> Also change Lunch, Advisory, Break and Other blocks</label>
-    <p id="aWarn"></p>
-    <p class="err" id="aErr" hidden></p>
-    <div class="dlgbtns"><button type="button" class="btn" id="aNo">Cancel</button><button type="submit" class="btn primary" id="aGo">Apply</button></div></form>`, d => {
-    const targets = () => m.blocks.filter(b => $('#aAll', d).checked || b.cat === 'class');
-    const update = () => {
-      const ts = targets(), n = posInt($('#aLen', d).value);
-      const custom = ts.reduce((a, b) => a + placements(m, b.id).filter(p => p.it.dur != null && p.it.dur !== n).length, 0);
-      $('#aGo', d).disabled = !ts.length;
-      $('#aWarn', d).innerHTML = !ts.length ? 'This model has no Class blocks. Tick the box above to change the other blocks.'
-        : `This sets ${ts.length} block${ts.length > 1 ? 's' : ''} to ${n ?? '?'} minutes on every day and makes ${n ?? '?'} the default for new blocks.<br>`
-        + (custom ? `<span class="warnline">It erases ${custom} day-specific length${custom > 1 ? 's' : ''} you set by hand.</span> ` : 'No day-specific lengths are set, so nothing else changes. ')
-        + 'Passing times are kept. Undo can reverse this.';
-    };
-    $('#aLen', d).oninput = update; $('#aAll', d).onchange = update; update();
-    $('#aNo', d).onclick = () => dlg.close();
-    $('#af', d).onsubmit = e => {
-      e.preventDefault();
-      const n = within($('#aLen', d).value, LIM.len);
-      if (n == null) { const err = $('#aErr', d); err.hidden = false; err.textContent = `Enter a length from ${LIM.len[0]} to ${LIM.len[1]} minutes.`; return; }
-      const ids = targets().map(b => b.id);
-      dlg.close();
-      commit(mm => {
-        mm.blockLen = n;
-        ids.forEach(id => { blockOf(mm, id).len = n; placements(mm, id).forEach(p => { p.it.dur = null; }); });
-      });
-      toast(`Set ${ids.length} block${ids.length > 1 ? 's' : ''} to ${n} minutes`);
-    };
-  });
-}
 /* Builds a clean model from data the app didn't just make: an imported file, or what was saved in
    this browser. Nothing from the input is kept unless it is checked. Imports always get new ids;
    saved models keep plain, unique ids so the chosen model and Compare picks survive a reload. */
@@ -1484,14 +1532,45 @@ function cleanModel(raw, fromStorage = false) {
   const used = new Set();
   const newId = v => { const id = fromStorage && safeId(v) && !used.has(v) ? v : uid(); used.add(id); return id; };
   const list = v => Array.isArray(v) ? v : [];
+  /* Types. The five built-ins always come first, in their fixed order, then the model's own types.
+     A version 1 file has no types: each built-in then takes the most common length among its blocks,
+     and Class takes the old model-wide default length (blockLen) when there is one. */
+  const rawTypes = Array.isArray(raw.types) ? raw.types.filter(t => t && typeof t === 'object') : null;
+  const commonLen = cat => {
+    const counts = new Map();
+    raw.blocks.forEach(b => { const n = b?.cat === cat ? within(b.len, LIM.len) : null; if (n != null) counts.set(n, (counts.get(n) || 0) + 1); });
+    let best = null, most = 0;
+    counts.forEach((c, n) => { if (c > most) { best = n; most = c; } });
+    return best;
+  };
+  const typeMap = new Map(); // type id in the input -> type id in the app
+  const types = BUILTIN.map(bt => {
+    const r = rawTypes?.find(t => t.id === bt.id);
+    typeMap.set(bt.id, bt.id);
+    const oldLen = bt.id === 'class' ? within(raw.blockLen, LIM.len) : null;
+    return {
+      id: bt.id, name: bt.name,
+      len: r ? fit(r.len, LIM.len, bt.len) : (oldLen ?? commonLen(bt.id) ?? bt.len),
+      academic: r ? r.academic === true : bt.academic, note: cleanNote(r?.note),
+    };
+  });
+  const custom = (rawTypes || []).filter(t => !BUILTIN_IDS.has(t.id));
+  limit(custom.length + BUILTIN.length, MAX.types, 'types');
+  custom.slice(0, MAX.types - BUILTIN.length).forEach(t => {
+    const id = newId(t.id);
+    if (t.id != null && !typeMap.has(String(t.id))) typeMap.set(String(t.id), id);
+    const name = uniqueName(String(t.name ?? '').trim().slice(0, TYPE_NAME_MAX) || 'Type', types.map(x => x.name));
+    types.push({ id, name, len: fit(t.len, LIM.len, 30), academic: t.academic === true, note: cleanNote(t.note) });
+  });
   const idMap = new Map(); // block id in the input -> block id in the app. A repeated id maps to its first block only.
   const blocks = raw.blocks.map((b, i) => {
     b = b && typeof b === 'object' ? b : {};
     const id = newId(b.id);
     if (b.id != null && !idMap.has(String(b.id))) idMap.set(String(b.id), id);
     return {
-      id, name: String(b.name || `Block ${i + 1}`).slice(0, 60), cat: has(CATS, b.cat) ? b.cat : 'other',
+      id, name: String(b.name || `Block ${i + 1}`).slice(0, 60), cat: typeMap.get(String(b.cat)) ?? 'other',
       len: fit(b.len, LIM.len, 50), hue: HUES.includes(b.hue) ? b.hue : HUES[i % HUES.length], target: b.target == null ? null : posInt(b.target),
+      note: cleanNote(b.note),
     };
   });
   const opt = (v, lim) => v == null ? null : fit(v, lim, lim[0]);
@@ -1508,7 +1587,7 @@ function cleanModel(raw, fromStorage = false) {
   return {
     id: fromStorage && safeId(raw.id) ? raw.id : uid(), name: String(raw.name || 'Imported model').slice(0, 80),
     passing: fit(raw.passing, LIM.pass, 5), defaultStart: fit(raw.defaultStart, LIM.start, 480),
-    blockLen: within(raw.blockLen, LIM.len), classTarget: raw.classTarget == null ? null : posInt(raw.classTarget), blocks,
+    classTarget: raw.classTarget == null ? null : posInt(raw.classTarget), types, blocks,
     days: raw.days.map(d => {
       limit(list(d?.items).length, MAX.items, 'blocks in one day');
       return { start: fit(d?.start, LIM.start, 480), items: list(d?.items).map(x => item(x, false)).filter(Boolean) };
