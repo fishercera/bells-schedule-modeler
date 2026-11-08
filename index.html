@@ -240,6 +240,7 @@ body.sizing, body.sizing * { cursor: ns-resize !important; }
 .meter i { display: block; height: 100%; background: var(--ok); }
 .meter.short i { background: var(--warn); }
 .lanemark { color: var(--muted); font-size: 11px; cursor: help; }
+.help { cursor: help; text-decoration: underline dotted var(--rule-strong); text-underline-offset: 3px; }
 .tgt { display: flex; justify-content: space-between; gap: 6px; align-items: center; font-size: 11.5px; color: var(--muted); padding-top: 1px; }
 
 /* Length table and compare */
@@ -563,6 +564,73 @@ function totals(m) {
   });
   return t;
 }
+/* ---------- Transitions and runs (pure) ----------
+   A student is in one lane of each split, so both are worked out over every path through a day, and a split
+   gives the lowest and highest a student can get.
+   A transition is each move from one block to the next, including 0-minute passing. Arriving and leaving don't count.
+   A run is class-time blocks in a row. It ends at a block that isn't class time, or where the real time between one
+   block's end and the next one's start is RUN_BREAK minutes or more (that includes waiting for the rest of a split to
+   finish). Each placement counts as one block, and a run's length in minutes runs from its first start to its last end. */
+const RUN_BREAK = 30;
+function dayTransitions(m, items) {
+  const count = seq => seq.filter(x => x.t === 'b' && blockOf(m, x.blockId)).length;
+  let lo = 0, hi = 0;
+  items.forEach(it => {
+    if (it.t === 'b') { if (blockOf(m, it.blockId)) { lo++; hi++; } return; }
+    const n = it.lanes.map(count); lo += Math.min(...n); hi += Math.max(...n);
+  });
+  return { lo: Math.max(0, lo - 1), hi: Math.max(0, hi - 1) };
+}
+// [blocks, minutes]: more blocks wins, then more minutes.
+const longer = (a, b) => a[0] !== b[0] ? (a[0] > b[0] ? a : b) : (a[1] >= b[1] ? a : b);
+/* Longest run on one day. Instead of listing every path (a split in every slot would make millions), it keeps one
+   state per distinct (blocks in the current run, when it started, when the last block ended), holding the longest
+   run any path reaching that state has had (hi) and the shortest such longest run (lo). Two paths in the same state
+   continue identically, so merging them is exact, and the number of states stays small. */
+function dayRuns(m, d) {
+  const day = m.days[d];
+  let states = new Map();
+  const put = (map, st) => {
+    const k = `${st.c}|${st.c ? st.s : 0}|${st.e}`, old = map.get(k);
+    if (!old) map.set(k, st);
+    else { old.hi = longer(old.hi, st.hi); old.lo = Math.min(old.lo, st.lo); }
+  };
+  const step = (st, b, start, end) => {
+    let c = st.c, s = st.s;
+    if (!isAcad(m, b)) c = 0;
+    else if (c && start - st.e < RUN_BREAK) c++;
+    else { c = 1; s = start; }
+    return { c, s, e: end, hi: c ? longer(st.hi, [c, end - s]) : st.hi, lo: Math.max(st.lo, c) };
+  };
+  const copy = st => ({ ...st });
+  put(states, { c: 0, s: 0, e: null, hi: [0, 0], lo: 0 });
+  layoutSeq(m, day.items, day.start, true).forEach(({ it, start, end }) => {
+    const next = new Map();
+    if (it.t === 'b') {
+      const b = blockOf(m, it.blockId);
+      states.forEach(st => put(next, b ? step(st, b, start, end) : copy(st)));
+    } else {
+      const lanes = it.lanes.map(l => layoutSeq(m, l, start, false).filter(x => x.it.t === 'b' && blockOf(m, x.it.blockId)));
+      states.forEach(st => lanes.forEach(L => put(next, L.reduce((acc, x) => step(acc, blockOf(m, x.it.blockId), x.start, x.end), copy(st)))));
+    }
+    states = next;
+  });
+  const all = [...states.values()];
+  return { hi: all.reduce((a, st) => longer(a, st.hi), [0, 0]), lo: Math.min(...all.map(st => st.lo)) };
+}
+/* Transitions per week and over two weeks, and the longest run over two weeks (the worst any student has).
+   partial: on every day with a run that long, only some lanes have it. */
+function flowTotals(m) {
+  const trans = { w: [R(), R()], all: R() };
+  const runs = m.days.map((day, d) => {
+    const t = dayTransitions(m, day.items);
+    for (const tgt of [trans.w[d < 7 ? 0 : 1], trans.all]) { tgt.lo += t.lo; tgt.hi += t.hi; }
+    return dayRuns(m, d);
+  });
+  const worst = runs.reduce((a, r) => longer(a, r.hi), [0, 0]);
+  const partial = worst[0] > 0 && !runs.some(r => r.hi[0] === worst[0] && r.lo === worst[0]);
+  return { trans, run: { n: worst[0], span: worst[1], partial } };
+}
 /* Targets are judged on the lowest possible total. For a type (all class time) a lane without that type
    counts as 0, so a split can't hide a shortfall there. For a single block, only the lanes that contain it
    count, because lanes often hold alternatives ("F or Lunch" / "Lunch or G": each student takes one of F
@@ -679,6 +747,14 @@ function fmt(v) {
   return v.toLocaleString('en-US');
 }
 const fmtR = r => !r ? fmt(0) : r.lo === r.hi ? fmt(r.lo) : `${fmt(r.lo)}–${fmt(r.hi)}`;
+// Counts (transitions) are never minutes, so they ignore the min / h:mm setting.
+const num = v => v.toLocaleString('en-US');
+const fmtCount = r => !r ? '0' : r.lo === r.hi ? num(r.lo) : `${num(r.lo)}–${num(r.hi)}`;
+const fmtSpan = v => v >= 60 ? `${Math.floor(v / 60)}h ${v % 60}m` : `${v} min`;
+const runText = r => r.n ? `${r.n} block${r.n > 1 ? 's' : ''} (${fmtSpan(r.span)})` : 'None';
+const TRANS_HELP = 'Each move from one block to the next, including 0-minute passing. Arriving and leaving for the day don\'t count.';
+const RUN_HELP = `The most class-time blocks in a row that any student has. A run ends at a block that isn't class time, or at a gap of ${RUN_BREAK} minutes or more.`;
+const RUN_PARTIAL = 'Only students in some lanes of a split have a run this long.';
 const unitLabel = () => S.unit === 'hrs' ? 'h:mm' : 'min';
 
 /* ---------- Rendering ---------- */
@@ -874,7 +950,7 @@ function renderRight() {
   $('#right').innerHTML = `<div class="colbar">${colBtn('right')}</div>${inspectorHTML()}${ledgerHTML()}`;
 }
 function ledgerHTML() {
-  const m = M(), t = totals(m), short = shortfalls(m, t), cls = targetState(m.classTarget, t.all.acad), partial = someLaneBlocks(m);
+  const m = M(), t = totals(m), short = shortfalls(m, t), cls = targetState(m.classTarget, t.all.acad), partial = someLaneBlocks(m), F = flowTotals(m);
   const row = (label, a, b, c) => `<td class="n">${fmtR(a)}</td><td class="n">${fmtR(b)}</td><td class="n">${fmtR(c)}</td>`;
   const mark = '<span class="lanemark" title="In only some lanes of a split. This total counts the students in the lanes that have it." aria-label="in only some lanes">◐</span>';
   const blockRows = blocks => blocks.map(b => {
@@ -896,6 +972,7 @@ function ledgerHTML() {
       ${g.blocks.length > 1 ? `<tr class="sub line"><td>All ${esc(g.name.toLowerCase())}</td>${row('', t.w[0].cats[g.id], t.w[1].cats[g.id], t.all.cats[g.id])}</tr>` : ''}`).join('')}
     <tr class="cat"><td colspan="4">Passing</td></tr>
     <tr class="line"><td>Passing time</td>${row('', t.w[0].pass, t.w[1].pass, t.all.pass)}</tr>
+    <tr class="line"><td><span class="help" title="${esc(TRANS_HELP)}">Transitions</span></td><td class="n">${fmtCount(F.trans.w[0])}</td><td class="n">${fmtCount(F.trans.w[1])}</td><td class="n">${fmtCount(F.trans.all)}</td></tr>
     </tbody></table>
     ${JSON.stringify(t.all).includes('"lo"') && hasRange(t) ? '<p class="hint">A range means the total depends on which lane someone is in. Targets use the lower number.</p>' : ''}
     ${partial.size ? `<p class="hint">${mark} In only some lanes of a split. That block's total and target count only the students in the lanes that have it, so it can't be added to the other blocks to get the type total.</p>` : ''}
@@ -1043,21 +1120,22 @@ function renderCompare(c) {
   const pick = `<div class="pickrow"><strong>Compare:</strong>${S.models.map(m => `<label><input type="checkbox" id="cmp-${esc(m.id)}" data-f="cmp" data-m="${esc(m.id)}"${S.compare.includes(m.id) ? ' checked' : ''}>${esc(m.name)}</label>`).join('')}
     <div class="tabs" style="margin-left:auto;font-size:12px"><button data-act="unit" data-u="min" aria-selected="${S.unit === 'min'}" style="padding:1px 8px">min</button><button data-act="unit" data-u="hrs" aria-selected="${S.unit === 'hrs'}" style="padding:1px 8px">h:mm</button></div></div>`;
   if (!ms.length) { c.innerHTML = `<div class="cmp">${pick}<p class="note">Select at least one model to see its totals.</p></div>`; return; }
-  const T = ms.map(m => totals(m));
+  const T = ms.map(m => totals(m)), F = ms.map(m => flowTotals(m));
   const ranges = ms.map(gridRange), lo = Math.min(...ranges.map(r => r.lo)), hi = Math.max(...ranges.map(r => r.hi));
   // Both ends of a range are compared, so "same" only appears when the low and the high totals both match.
-  const signed = v => v === 0 ? '±0' : `${v > 0 ? '+' : '−'}${fmt(Math.abs(v))}`;
-  const delta = (r, i, get) => {
+  // Counts (opts.count) aren't minutes, and more of them isn't better or worse, so their differences aren't colored.
+  const signed = (v, count) => v === 0 ? '±0' : `${v > 0 ? '+' : '−'}${count ? num(Math.abs(v)) : fmt(Math.abs(v))}`;
+  const delta = (r, i, get, count) => {
     if (i === 0 || ms.length < 2) return '';
     const base = get(0);
     if (!r || !base) return '';
     const dLo = r.lo - base.lo, dHi = r.hi - base.hi;
     if (!dLo && !dHi) return '<span class="delta">same</span>';
-    const dir = dLo >= 0 && dHi >= 0 ? 'up' : dLo <= 0 && dHi <= 0 ? 'down' : '';
-    return `<span class="delta ${dir}">${dLo === dHi ? signed(dLo) : `${signed(dLo)} low, ${signed(dHi)} high`}</span>`;
+    const dir = count ? '' : dLo >= 0 && dHi >= 0 ? 'up' : dLo <= 0 && dHi <= 0 ? 'down' : '';
+    return `<span class="delta ${dir}">${dLo === dHi ? signed(dLo, count) : `${signed(dLo, count)} low, ${signed(dHi, count)} high`}</span>`;
   };
   const line = (label, get, opts = {}) => `<tr class="${opts.bold ? 'b' : ''}"><td class="stick">${label}</td>${ms.map((m, i) => {
-    const r = get(i); return `<td class="num">${r ? fmtR(r) : '–'}${delta(r, i, get)}</td>`;
+    const r = get(i); return `<td class="num">${r ? (opts.count ? fmtCount(r) : fmtR(r)) : '–'}${delta(r, i, get, opts.count)}</td>`;
   }).join('')}</tr>`;
   const head = txt => `<tr><th class="stick" colspan="${ms.length + 1}" style="text-align:left">${txt}</th></tr>`;
   // A model with no time of some kind has 0 minutes of it, not a blank, so it still gets a difference.
@@ -1088,6 +1166,8 @@ function renderCompare(c) {
       ${line('Week 1', i => z(T[i].w[0].acad))}${line('Week 2', i => z(T[i].w[1].acad))}${line('Two-week total', i => z(T[i].all.acad))}
       <tr><td class="stick">Targets</td>${status.map(s => `<td>${s}</td>`).join('')}</tr>
       ${head('Time by type')}${catRows.join('')}${line('Passing, two-week', i => T[i].all.pass)}
+      ${head('<span class="help" title="' + esc(TRANS_HELP) + '">Transitions</span>')}
+      ${line('Week 1', i => F[i].trans.w[0], { count: true })}${line('Week 2', i => F[i].trans.w[1], { count: true })}${line('Two-week total', i => F[i].trans.all, { count: true })}
       ${head('Named blocks, two-week total')}${byType.map(x => sub(x.name) + x.rows.map(g => line(esc(g.name), i => byKey(i, g.key, T[i].all))).join('')).join('')}
     </tbody></table></div>
     ${ms.length > 1 ? `<p class="note">Differences compare each model with ${esc(ms[0].name)}. When a total is a range, the low and high ends are compared separately. Blocks with the same name and type are matched across models; – means the model has no such block.</p>` : ''}</div>`;
@@ -1675,6 +1755,8 @@ function totalsCSV(m) {
   rows.push(['All class time', 'Class time', plainR(t.w[0].acad), plainR(t.w[1].acad), plainR(t.all.acad), m.classTarget ?? '', st(targetState(m.classTarget, t.all.acad))]);
   sortedBlocks(m).forEach(b => rows.push([b.name, typeName(m, b.cat), plainR(t.w[0].blocks[b.id]), plainR(t.w[1].blocks[b.id]), plainR(t.all.blocks[b.id]), b.target ?? '', st(targetState(b.target, t.all.blocks[b.id])), b.note, typeOf(m, b.cat).note]));
   rows.push(['Passing', 'Passing', plainR(t.w[0].pass), plainR(t.w[1].pass), plainR(t.all.pass), '', '']);
+  const F = flowTotals(m);
+  rows.push(['Transitions (count, not minutes)', 'Transitions', plainR(F.trans.w[0]), plainR(F.trans.w[1]), plainR(F.trans.all), '', '']);
   return csv(rows);
 }
 function exportDlg() {
