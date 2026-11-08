@@ -74,8 +74,8 @@ Some blocks repeat through the week, but each student is assigned to only some o
 The modeler is published as a claude.ai page: <https://claude.ai/artifact/VbB7uEsZZxXeVuoUnfYb13>. It's private until it is shared from the page's Share menu.
 
 - **Saving:** each person's schedules are saved in their own browser, as with `index.html`. Nobody sees anyone else's, and a private window or cleared site data starts over, so keep downloaded JSON files as backups. To share a model, download its JSON from Export and send it; the other person uses Import.
-- **Starting models:** someone opening it for the first time starts with the four Hotchkiss models, Deerfield, and the two built-in samples. People who have used it before keep their own saved models, even after an update; they can Import anything new.
-- **Downloads:** the page is published with the `downloads` capability, so Download and PDF work there through Claude's save prompt. Print is not available there.
+- **Starting models:** someone opening it for the first time starts with the four Hotchkiss models, Deerfield, and the two built-in samples. People who have used it before keep their own saved models, even after an update. To pick up updated starting models they can Import the new files, or use **Start over**, which replaces every model saved in their browser with the current starting models (after offering to download them all first).
+- **Downloads:** the page is published with the `downloads` capability, so Download and PDF work there through Claude's save prompt for people signed in to Claude. People who aren't signed in (or are in a private window) don't get the save prompt, so those buttons are hidden for them; Copy in Export still works. Print is not available there.
 
 ### Updating it
 
