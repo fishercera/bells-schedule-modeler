@@ -36,6 +36,13 @@
      "len": 45,
      "academic": false,
      "note": ""
+    },
+    {
+     "id": "xxc44jbo6",
+     "name": "Co-curricular",
+     "len": 120,
+     "academic": false,
+     "note": ""
     }
    ],
    "groups": [
@@ -314,6 +321,17 @@
      "note": "",
      "groups": [],
      "limit": null
+    },
+    {
+     "id": "xp7ag0ygz",
+     "name": "Co-curricular",
+     "cat": "xxc44jbo6",
+     "len": 120,
+     "hue": 52,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     }
    ],
    "days": [
@@ -414,6 +432,13 @@
        "blockId": "xk7128i5s",
        "dur": 35,
        "gap": null
+      },
+      {
+       "id": "x8fixo2u6",
+       "t": "b",
+       "blockId": "xp7ag0ygz",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -492,6 +517,13 @@
        "t": "b",
        "blockId": "xmzlgbk3k",
        "dur": 35,
+       "gap": null
+      },
+      {
+       "id": "xgjxtyq5p",
+       "t": "b",
+       "blockId": "xp7ag0ygz",
+       "dur": null,
        "gap": null
       }
      ]
@@ -633,6 +665,13 @@
        "blockId": "xp7taqjdf",
        "dur": 35,
        "gap": null
+      },
+      {
+       "id": "xbofblyo7",
+       "t": "b",
+       "blockId": "xp7ag0ygz",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -711,6 +750,13 @@
        "t": "b",
        "blockId": "xby5foal1",
        "dur": 35,
+       "gap": null
+      },
+      {
+       "id": "xfdo9jasz",
+       "t": "b",
+       "blockId": "xp7ag0ygz",
+       "dur": null,
        "gap": null
       }
      ]
@@ -849,6 +895,13 @@
        "blockId": "xk7128i5s",
        "dur": 35,
        "gap": null
+      },
+      {
+       "id": "xji73pa53",
+       "t": "b",
+       "blockId": "xp7ag0ygz",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -927,6 +980,13 @@
        "t": "b",
        "blockId": "xmzlgbk3k",
        "dur": 35,
+       "gap": null
+      },
+      {
+       "id": "x3ia55alv",
+       "t": "b",
+       "blockId": "xp7ag0ygz",
+       "dur": null,
        "gap": null
       }
      ]
@@ -1068,6 +1128,13 @@
        "dur": 35,
        "gap": null,
        "note": "A single chapel per week is possible if it is moved to Walker or Elfers."
+      },
+      {
+       "id": "x7qtal932",
+       "t": "b",
+       "blockId": "xp7ag0ygz",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -1146,6 +1213,13 @@
        "t": "b",
        "blockId": "xby5foal1",
        "dur": 35,
+       "gap": null
+      },
+      {
+       "id": "xepi3hwmg",
+       "t": "b",
+       "blockId": "xp7ag0ygz",
+       "dur": null,
        "gap": null
       }
      ]

@@ -43,6 +43,13 @@
      "len": 45,
      "academic": false,
      "note": ""
+    },
+    {
+     "id": "xjuen8kco",
+     "name": "Co-curricular",
+     "len": 120,
+     "academic": false,
+     "note": ""
     }
    ],
    "groups": [
@@ -321,6 +328,17 @@
      "note": "",
      "groups": [],
      "limit": null
+    },
+    {
+     "id": "xk8q9xyq6",
+     "name": "Co-curricular",
+     "cat": "xjuen8kco",
+     "len": 120,
+     "hue": 52,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     }
    ],
    "days": [
@@ -421,6 +439,13 @@
        "blockId": "xpne1shdk",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "x5ych5lgt",
+       "t": "b",
+       "blockId": "xk8q9xyq6",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -498,6 +523,13 @@
        "id": "x9fgfoc80",
        "t": "b",
        "blockId": "xpne1shdk",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xsbqdgpta",
+       "t": "b",
+       "blockId": "xk8q9xyq6",
        "dur": null,
        "gap": null
       }
@@ -640,6 +672,13 @@
        "blockId": "xpne1shdk",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "x04p0lffe",
+       "t": "b",
+       "blockId": "xk8q9xyq6",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -717,6 +756,13 @@
        "id": "xvaj4i5m4",
        "t": "b",
        "blockId": "xpne1shdk",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xxekjmuho",
+       "t": "b",
+       "blockId": "xk8q9xyq6",
        "dur": null,
        "gap": null
       }
@@ -856,6 +902,13 @@
        "blockId": "xpne1shdk",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "xiki5wry7",
+       "t": "b",
+       "blockId": "xk8q9xyq6",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -933,6 +986,13 @@
        "id": "xpm18xzpa",
        "t": "b",
        "blockId": "xpne1shdk",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xknoaj0z0",
+       "t": "b",
+       "blockId": "xk8q9xyq6",
        "dur": null,
        "gap": null
       }
@@ -1075,6 +1135,13 @@
        "blockId": "xpne1shdk",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "xqzomgnif",
+       "t": "b",
+       "blockId": "xk8q9xyq6",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -1152,6 +1219,13 @@
        "id": "xsmnowxlx",
        "t": "b",
        "blockId": "xpne1shdk",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xaardenm7",
+       "t": "b",
+       "blockId": "xk8q9xyq6",
        "dur": null,
        "gap": null
       }

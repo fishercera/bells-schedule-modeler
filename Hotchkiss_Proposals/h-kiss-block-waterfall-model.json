@@ -1,14 +1,72 @@
 {
  "app": "bell-schedule-modeler",
- "version": 1,
+ "version": 4,
  "models": [
   {
    "id": "xzefw7b0p",
    "name": "H'kiss Block Waterfall",
    "passing": 5,
    "defaultStart": 480,
-   "blockLen": 90,
    "classTarget": null,
+   "types": [
+    {
+     "id": "class",
+     "name": "Class",
+     "len": 90,
+     "academic": true,
+     "note": ""
+    },
+    {
+     "id": "advisory",
+     "name": "Advisory",
+     "len": 45,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "lunch",
+     "name": "Lunch",
+     "len": 50,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "other",
+     "name": "Other",
+     "len": 45,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "xlkz03vqm",
+     "name": "Co-curricular",
+     "len": 120,
+     "academic": false,
+     "note": ""
+    }
+   ],
+   "groups": [
+    {
+     "id": "xwkijar3f",
+     "name": "Prep",
+     "grade": true
+    },
+    {
+     "id": "xwhj1byyl",
+     "name": "LM",
+     "grade": true
+    },
+    {
+     "id": "xzum8mt93",
+     "name": "UM",
+     "grade": true
+    },
+    {
+     "id": "x2zioahza",
+     "name": "Senior",
+     "grade": true
+    }
+   ],
    "blocks": [
     {
      "id": "x39kawkxz",
@@ -16,7 +74,10 @@
      "cat": "class",
      "len": 70,
      "hue": 212,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xt7m8uxk1",
@@ -24,7 +85,10 @@
      "cat": "other",
      "len": 45,
      "hue": 186,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "x1mvgzq25",
@@ -32,7 +96,10 @@
      "cat": "class",
      "len": 70,
      "hue": 158,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xnobogdec",
@@ -40,7 +107,10 @@
      "cat": "class",
      "len": 70,
      "hue": 32,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xpne1shdk",
@@ -48,7 +118,10 @@
      "cat": "other",
      "len": 45,
      "hue": 186,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "x411fkpjg",
@@ -56,7 +129,10 @@
      "cat": "class",
      "len": 70,
      "hue": 340,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xmzlgbk3k",
@@ -64,7 +140,10 @@
      "cat": "other",
      "len": 45,
      "hue": 186,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xdh374o3r",
@@ -72,7 +151,10 @@
      "cat": "class",
      "len": 70,
      "hue": 268,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xq02puy56",
@@ -80,7 +162,10 @@
      "cat": "lunch",
      "len": 50,
      "hue": 52,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xjbvu5oum",
@@ -88,7 +173,10 @@
      "cat": "class",
      "len": 70,
      "hue": 95,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xp7taqjdf",
@@ -96,7 +184,10 @@
      "cat": "other",
      "len": 40,
      "hue": 186,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xk7128i5s",
@@ -104,7 +195,10 @@
      "cat": "other",
      "len": 45,
      "hue": 186,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xby5foal1",
@@ -112,7 +206,10 @@
      "cat": "advisory",
      "len": 45,
      "hue": 300,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "xbr70oylc",
@@ -120,7 +217,10 @@
      "cat": "class",
      "len": 50,
      "hue": 12,
-     "target": 110
+     "target": 110,
+     "note": "",
+     "groups": [],
+     "limit": null
     },
     {
      "id": "x8exegz5y",
@@ -128,7 +228,21 @@
      "cat": "lunch",
      "len": 50,
      "hue": 240,
-     "target": null
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x4guzngte",
+     "name": "Co-curricular",
+     "cat": "xlkz03vqm",
+     "len": 120,
+     "hue": 130,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     }
    ],
    "days": [
@@ -212,6 +326,13 @@
        "blockId": "xpne1shdk",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "xuiv9sji1",
+       "t": "b",
+       "blockId": "x4guzngte",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -289,6 +410,13 @@
        "id": "xg10rn864",
        "t": "b",
        "blockId": "xpne1shdk",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "x6m3ujj5a",
+       "t": "b",
+       "blockId": "x4guzngte",
        "dur": null,
        "gap": null
       }
@@ -430,6 +558,13 @@
        "blockId": "xpne1shdk",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "x3xfqpief",
+       "t": "b",
+       "blockId": "x4guzngte",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -509,6 +644,13 @@
        "blockId": "xpne1shdk",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "xdupti1x1",
+       "t": "b",
+       "blockId": "x4guzngte",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -557,6 +699,13 @@
        "blockId": "xpne1shdk",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "xhcl78bjq",
+       "t": "b",
+       "blockId": "x4guzngte",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -602,6 +751,13 @@
        "id": "x8ypu7do0",
        "t": "b",
        "blockId": "xpne1shdk",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xjaxugbz2",
+       "t": "b",
+       "blockId": "x4guzngte",
        "dur": null,
        "gap": null
       }
@@ -677,6 +833,13 @@
        "blockId": "xpne1shdk",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "xu9cd9qx5",
+       "t": "b",
+       "blockId": "x4guzngte",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -715,6 +878,13 @@
        "id": "xbirqq2pc",
        "t": "b",
        "blockId": "xpne1shdk",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xj97cfrd6",
+       "t": "b",
+       "blockId": "x4guzngte",
        "dur": null,
        "gap": null
       }

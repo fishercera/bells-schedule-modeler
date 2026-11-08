@@ -8,7 +8,7 @@ A single-page, self-contained HTML tool for modeling and comparing school bell s
 |---|---|
 | `index.html` | The app. |
 | `school-models/` | Schedule models for 14 peer schools, as JSON the app can import. Rebuilt from `build_models.py`. See [`school-models/README.md`](school-models/README.md) for the rules and per-school choices. |
-| `Hotchkiss_Proposals/` | Hotchkiss schedule models, also importable JSON: the current schedule (status quo) and two proposals (block waterfall, and block waterfall with a morning flex). |
+| `Hotchkiss_Proposals/` | Hotchkiss schedule models, also importable JSON: the current schedule (status quo) and three proposals (block waterfall; block waterfall with a morning flex; block waterfall minimizing back-to-back class). Each has a 2-hour Co-curricular block (its own type, not class time) starting 5 minutes after the last block on Monday, Tuesday, Thursday and Friday of both weeks. |
 
 ## Using the models
 

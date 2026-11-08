@@ -43,6 +43,13 @@
      "len": 30,
      "academic": false,
      "note": ""
+    },
+    {
+     "id": "x9lxaewnl",
+     "name": "Co-curricular",
+     "len": 120,
+     "academic": false,
+     "note": ""
     }
    ],
    "groups": [
@@ -243,6 +250,17 @@
      "note": "",
      "groups": [],
      "limit": null
+    },
+    {
+     "id": "xtdh8sah3",
+     "name": "Co-curricular",
+     "cat": "x9lxaewnl",
+     "len": 120,
+     "hue": 268,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
     }
    ],
    "days": [
@@ -358,6 +376,13 @@
        "blockId": "xfs3qsf82",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "x7l56lmj1",
+       "t": "b",
+       "blockId": "xtdh8sah3",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -449,6 +474,13 @@
        "id": "x4y0o9rrt",
        "t": "b",
        "blockId": "xfs3qsf82",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xnj5wzbrb",
+       "t": "b",
+       "blockId": "xtdh8sah3",
        "dur": null,
        "gap": null
       }
@@ -627,6 +659,13 @@
        "blockId": "xfs3qsf82",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "x9c8tm61h",
+       "t": "b",
+       "blockId": "xtdh8sah3",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -718,6 +757,13 @@
        "id": "xwxjozah9",
        "t": "b",
        "blockId": "xfs3qsf82",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xvrvwhx99",
+       "t": "b",
+       "blockId": "xtdh8sah3",
        "dur": null,
        "gap": null
       }
@@ -861,6 +907,13 @@
        "blockId": "xfs3qsf82",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "x33d9plvn",
+       "t": "b",
+       "blockId": "xtdh8sah3",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -952,6 +1005,13 @@
        "id": "x4gwmlxgz",
        "t": "b",
        "blockId": "xfs3qsf82",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xyavhi875",
+       "t": "b",
+       "blockId": "xtdh8sah3",
        "dur": null,
        "gap": null
       }
@@ -1130,6 +1190,13 @@
        "blockId": "xfs3qsf82",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "x7xsptl9v",
+       "t": "b",
+       "blockId": "xtdh8sah3",
+       "dur": null,
+       "gap": null
       }
      ]
     },
@@ -1221,6 +1288,13 @@
        "id": "xcizd33h1",
        "t": "b",
        "blockId": "xfs3qsf82",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xk3s5gm1y",
+       "t": "b",
+       "blockId": "xtdh8sah3",
        "dur": null,
        "gap": null
       }
