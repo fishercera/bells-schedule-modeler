@@ -158,6 +158,20 @@ select.pick { width: auto; max-width: 260px; font-weight: 600; }
 .grow .gn { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .grow .gi { flex: none; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
 .checks { display: flex; flex-wrap: wrap; gap: 3px 12px; }
+/* A long name is shortened with "…" so the group label and note marks after it stay in view. In a very narrow
+   lane the label gives way first. */
+.chip .nm { display: flex; align-items: baseline; }
+.nm .nt { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nm .gmark { flex: 0 1000 auto; min-width: 2.6em; overflow: hidden; text-overflow: ellipsis; }
+.nm .nmark { flex: none; }
+/* In a calendar block under 70px wide (a narrow lane) the name comes first: the group label is left out (the corner
+   tab and the hover card still show it) and note marks are cut before the name is. */
+.blk { container-type: inline-size; }
+@container (max-width: 70px) {
+  .nm .gmark { display: none; }
+  .nm .nmark { flex: 0 3 auto; min-width: 0; overflow: hidden; }
+}
+.lt th .gh-sub { display: block; min-width: 90px; font-size: 11px; font-weight: 400; color: var(--muted); white-space: normal; }
 .checks .sep { flex-basis: 100%; height: 0; }
 
 /* Week sheets */
@@ -195,7 +209,9 @@ select.pick { width: auto; max-width: 260px; font-weight: 600; }
 .blk[data-noncat] { border-style: dashed; }
 .blk.on { outline: 2px solid var(--accent); outline-offset: 1px; z-index: 4; }
 .blk.lift { opacity: .35; }
-.blk .nm { font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.blk .nm { font-weight: 600; display: flex; align-items: baseline; white-space: nowrap; overflow: hidden; }
+/* A block for only some groups gets a corner tab, which shows even in a lane too narrow for its group label. */
+.blk.forsome::before { content: ''; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 8px 8px 0; border-color: transparent hsl(var(--h) 45% var(--blk-edge-l)) transparent transparent; pointer-events: none; }
 .blk .tm { display: block; font: 400 10.5px var(--f-data); white-space: nowrap; overflow: hidden; }
 .blk .mod { font-family: var(--f-data); font-weight: 500; }
 .rz { position: absolute; left: 0; right: 0; height: 7px; cursor: ns-resize; touch-action: none; z-index: 2; }
@@ -972,7 +988,7 @@ function renderLeft() {
         ${g.blocks.map(b => `
         <div class="chip${S.sel?.kind === 'block' && S.sel.id === b.id ? ' on' : ''}" style="--h:${b.hue}" ${isAcad(m, b) ? '' : 'data-noncat'}
           data-pal="${esc(b.id)}" role="button" tabindex="0" aria-label="${esc(b.name)}, ${esc(g.name)}, ${b.len} minutes${b.groups.length ? `, for ${esc(forText(m, b))}` : ''}${b.note ? ', has a note' : ''}">
-          <span class="nm">${esc(b.name)}${gmark(m, b)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span><span class="ln">${b.len}m${b.len !== g.type.len ? '*' : ''}</span></div>`).join('')}
+          <span class="nm"><span class="nt">${esc(b.name)}</span>${gmark(m, b)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span><span class="ln">${b.len}m${b.len !== g.type.len ? '*' : ''}</span></div>`).join('')}
       </div>`).join('')}</div>
     <div class="btnrow"><button class="btn sm" data-act="addType" ${m.types.length >= MAX.types ? 'disabled' : ''}>Add type</button></div>`;
   const tagged = id => m.blocks.filter(b => b.groups.includes(id)).length;
@@ -1060,10 +1076,10 @@ function seqHTML(m, items, t0, origin, top, d) {
       const b = blockOf(m, it.blockId);
       if (b) {
         const on = isSel(it.id), mins = end - start, changed = it.dur != null && it.dur !== b.len;
-        out += `<div class="blk${on ? ' on' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px" ${isAcad(m, b) ? '' : 'data-noncat'} data-item="${esc(it.id)}" tabindex="0" role="button"
+        out += `<div class="blk${on ? ' on' : ''}${b.groups.length ? ' forsome' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px" ${isAcad(m, b) ? '' : 'data-noncat'} data-item="${esc(it.id)}" tabindex="0" role="button"
           aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes${b.groups.length ? `, for ${esc(forText(m, b))}` : ''}${it.note ? ', has a note for this day' : ''}${b.note ? ', has a block note' : ''}">
           <span class="rz t" data-rz="t"></span>
-          <span class="nm">${esc(b.name)}${gmark(m, b)}${it.note ? '<span class="nmark">✎</span>' : ''}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>
+          <span class="nm"><span class="nt">${esc(b.name)}</span>${gmark(m, b)}${it.note ? '<span class="nmark">✎</span>' : ''}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>
           ${h >= 30 ? `<span class="tm">${clock(start)}–${clock(end)}</span>` : ''}
           ${h >= 42 ? `<span class="tm">${changed ? `<span class="mod">${mins}m*</span>` : `${mins}m`}</span>` : ''}
           <span class="rz b" data-rz="b"></span></div>`;
@@ -1322,7 +1338,7 @@ function renderGroupsTab(c) {
   const label = per === 'all' ? 'two weeks' : `Week ${per + 1}`;
   c.innerHTML = `<div class="cmp">${top}
     <p class="note">Each column is one group's time over ${label}: blocks for all students, plus blocks tagged for that group. A combined group and All students show the lowest to highest of their members. – means the group never has that block.</p>
-    <div class="tablewrap"><table class="lt"><thead><tr><th class="stick">${unitLabel() === 'min' ? 'Minutes' : 'Hours'}</th>${cols.map(col => `<th>${esc(col.name)}<span class="delta">${esc(col.sub)}</span></th>`).join('')}</tr></thead><tbody>
+    <div class="tablewrap"><table class="lt"><thead><tr><th class="stick">${unitLabel() === 'min' ? 'Minutes' : 'Hours'}</th>${cols.map(col => `<th>${esc(col.name)}<span class="gh-sub">${esc(col.sub)}</span></th>`).join('')}</tr></thead><tbody>
       ${head('Class time')}${line('Class time', r => P(r).acad, { bold: true })}${tgt}
       ${head('Time by type')}${typeRows.join('')}
       ${any(r => P(r).free) ? line(`<span class="help" title="${esc(FREE_HELP)}">Free time</span>`, r => P(r).free) : ''}
