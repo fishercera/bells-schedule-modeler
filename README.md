@@ -62,6 +62,13 @@ Some blocks repeat through the week, but each student is assigned to only some o
 - **Meeting length:** if the meetings have different lengths, each counts as the block's average length.
 - **With student groups:** the limit applies within each group's own day.
 
+## Exports, downloads and the PDF
+
+- **Export** gives one model or all models as JSON (to share or re-import with **Import**), the bell schedule and totals as CSV, and totals by student group as CSV. **Copy** works everywhere.
+- **Download:** on your own computer the browser saves the file at once. In the published version (a claude.ai page) Claude first asks the person to confirm the file name and size; saying no saves nothing.
+- **PDF** (top bar) saves the current model's Week 1 and Week 2 as a two-page US Letter landscape PDF, laid out like the Schedule tab and showing the whole schedule. It shows each week's class time, passing and Free time, each day's class time and hours, and every block with its times, colors, split lanes and group or "1/wk" labels. The PDF maker (jsPDF) loads from cdnjs the first time, so it needs an internet connection. Characters outside its font, such as emoji, print as "?".
+- **Print** appears only on your own computer: a published claude.ai page can't open the print dialog. Use **PDF** there instead.
+
 ## Not in the repo
 
 `ScheduleDocs/` (the source PDFs and screenshots the peer-school models were built from) is kept locally and listed in `.gitignore`.
