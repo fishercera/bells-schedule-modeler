@@ -251,6 +251,15 @@ dialog::backdrop { background: rgba(10, 25, 20, .45); }
 dialog form, .dlg { display: flex; flex-direction: column; gap: 10px; }
 dialog h2 { font: 700 18px/1.2 var(--f-display); }
 dialog textarea { min-height: 200px; font: 12px/1.4 var(--f-data); resize: vertical; }
+textarea.note-in { min-height: 58px; resize: vertical; font: 13px/1.4 var(--f-body); }
+.nmark { font-size: 10.5px; font-weight: 400; opacity: .8; margin-left: 3px; }
+
+/* Hover card: what a block or type is, and its notes */
+#hovercard { position: fixed; z-index: 55; left: 0; top: 0; pointer-events: none; width: max-content; max-width: 300px; background: var(--sheet); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 8px; box-shadow: var(--shadow); padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; line-height: 1.4; }
+#hovercard .hc-title { font-weight: 700; font-size: 13.5px; display: flex; align-items: center; }
+#hovercard .hc-meta { color: var(--muted); font: 400 11.5px/1.4 var(--f-data); }
+#hovercard .hc-note { white-space: pre-wrap; overflow-wrap: anywhere; border-top: 1px solid var(--rule); padding-top: 5px; }
+#hovercard .hc-lab { display: block; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 1px; }
 .dlgbtns { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
 .err { color: var(--warn); font-size: 12.5px; }
 #toast { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); padding: 7px 14px; border-radius: 7px; font-weight: 500; box-shadow: var(--shadow); max-width: calc(100vw - 32px); }
@@ -310,6 +319,7 @@ dialog textarea { min-height: 200px; font: 12px/1.4 var(--f-data); resize: verti
 <dialog id="dlg"></dialog>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 <div id="ghost" hidden></div>
+<div id="hovercard" hidden></div>
 <div id="dropline" hidden></div>
 
 <script>
@@ -631,7 +641,8 @@ const fmtR = r => !r ? fmt(0) : r.lo === r.hi ? fmt(r.lo) : `${fmt(r.lo)}–${fm
 const unitLabel = () => S.unit === 'hrs' ? 'h:mm' : 'min';
 
 /* ---------- Rendering ---------- */
-function render() { dropStaleSel(); renderTop(); renderLeft(); renderCenter(); renderRight(); }
+// The hover card points at an element that a redraw replaces, so it closes on every redraw.
+function render() { hideTip(); dropStaleSel(); renderTop(); renderLeft(); renderCenter(); renderRight(); }
 // An edit can remove what was selected (Copy Week 1 here replaces Week 2, say). A selection that points at nothing
 // would make the next Delete or arrow key fail, so it is cleared on every redraw.
 function dropStaleSel() {
@@ -678,13 +689,13 @@ function renderLeft() {
     <div class="tray">${typeGroups(m, true).map(g => `
       <div class="tgroup" role="group" aria-label="${esc(g.name)} blocks">
         <div class="thead${S.sel?.kind === 'type' && S.sel.id === g.id ? ' on' : ''}">
-          <button class="tname" data-act="selType" data-type="${esc(g.id)}" title="${esc(g.name)}: ${g.type.academic ? 'counts as class time' : 'not class time'}, new blocks ${g.type.len} min. Click for type settings.">${esc(g.name)}</button>
-          <span class="tlen num" title="Default length">${g.type.len}m</span>
+          <button class="tname" data-act="selType" data-type="${esc(g.id)}">${esc(g.name)}${g.type.note ? '<span class="nmark" aria-label="has a note">ⓘ</span>' : ''}</button>
+          <span class="tlen num">${g.type.len}m</span>
           <button class="tadd" data-act="addBlockOfType" data-type="${esc(g.id)}" title="Add a ${esc(g.name)} block" aria-label="Add a ${esc(g.name)} block">+</button></div>
         ${g.blocks.map(b => `
         <div class="chip${S.sel?.kind === 'block' && S.sel.id === b.id ? ' on' : ''}" style="--h:${b.hue}" ${isAcad(m, b) ? '' : 'data-noncat'}
-          data-pal="${esc(b.id)}" role="button" tabindex="0" title="${esc(b.name)}: ${esc(g.name)}, placed ${usedIn(b.id)} times">
-          <span class="nm">${esc(b.name)}</span><span class="ln"${b.len !== g.type.len ? ` title="${esc(g.name)} default is ${g.type.len} min"` : ''}>${b.len}m${b.len !== g.type.len ? '*' : ''}</span></div>`).join('')}
+          data-pal="${esc(b.id)}" role="button" tabindex="0" aria-label="${esc(b.name)}, ${esc(g.name)}, ${b.len} minutes${b.note ? ', has a note' : ''}">
+          <span class="nm">${esc(b.name)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span><span class="ln">${b.len}m${b.len !== g.type.len ? '*' : ''}</span></div>`).join('')}
       </div>`).join('')}</div>
     <div class="btnrow"><button class="btn sm" data-act="addType" ${m.types.length >= MAX.types ? 'disabled' : ''}>Add type</button></div>
   </div>
@@ -760,9 +771,9 @@ function seqHTML(m, items, t0, origin, top, d) {
       if (b) {
         const on = S.sel?.kind === 'item' && S.sel.id === it.id, mins = end - start, changed = it.dur != null && it.dur !== b.len;
         out += `<div class="blk${on ? ' on' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px" ${isAcad(m, b) ? '' : 'data-noncat'} data-item="${esc(it.id)}" tabindex="0" role="button"
-          aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes" title="${esc(b.name)} · ${clock(start)}–${clock(end)} · ${mins} min${changed ? ` (default ${b.len})` : ''}">
+          aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes${b.note ? ', has a note' : ''}">
           <span class="rz t" data-rz="t"></span>
-          <span class="nm">${esc(b.name)}</span>
+          <span class="nm">${esc(b.name)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>
           ${h >= 30 ? `<span class="tm">${clock(start)}–${clock(end)}</span>` : ''}
           ${h >= 42 ? `<span class="tm">${changed ? `<span class="mod">${mins}m*</span>` : `${mins}m`}</span>` : ''}
           <span class="rz b" data-rz="b"></span></div>`;
@@ -781,7 +792,7 @@ function ledgerHTML() {
   const mark = '<span class="lanemark" title="In only some lanes of a split. This total counts the students in the lanes that have it." aria-label="in only some lanes">◐</span>';
   const blockRows = blocks => blocks.map(b => {
     const tg = targetState(b.target, t.all.blocks[b.id]);
-    return `<tr class="${tg ? '' : 'line'}"><td><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}${partial.has(b.id) ? ` ${mark}` : ''}</td>${row(b.name, t.w[0].blocks[b.id], t.w[1].blocks[b.id], t.all.blocks[b.id])}</tr>
+    return `<tr class="${tg ? '' : 'line'}"><td><span data-tipblock="${esc(b.id)}"><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>${partial.has(b.id) ? ` ${mark}` : ''}</td>${row(b.name, t.w[0].blocks[b.id], t.w[1].blocks[b.id], t.all.blocks[b.id])}</tr>
       ${tg ? `<tr class="line"><td colspan="4">${meterHTML(tg)}</td></tr>` : ''}`;
   }).join('');
   return `<div class="panel" id="ledger">
@@ -795,7 +806,7 @@ function ledgerHTML() {
     ${cls ? meterHTML(cls) : ''}
     ${short.length ? `<div><span class="pill short">${short.length} target${short.length > 1 ? 's' : ''} short</span> <span class="hint">${esc(short.join(', '))}</span></div>` : ''}
     <table class="ledger"><thead><tr><th>Block</th><th>Wk 1</th><th>Wk 2</th><th>2-wk</th></tr></thead><tbody>
-    ${typeGroups(m).map(g => `<tr class="cat"><td colspan="4">${esc(g.name)}</td></tr>${blockRows(g.blocks)}
+    ${typeGroups(m).map(g => `<tr class="cat"><td colspan="4"><span data-tiptype="${esc(g.id)}">${esc(g.name)}${g.type.note ? '<span class="nmark">ⓘ</span>' : ''}</span></td></tr>${blockRows(g.blocks)}
       ${g.blocks.length > 1 ? `<tr class="sub line"><td>All ${esc(g.name.toLowerCase())}</td>${row('', t.w[0].cats[g.id], t.w[1].cats[g.id], t.all.cats[g.id])}</tr>` : ''}`).join('')}
     <tr class="cat"><td colspan="4">Passing</td></tr>
     <tr class="line"><td>Passing time</td>${row('', t.w[0].pass, t.w[1].pass, t.all.pass)}</tr>
@@ -833,6 +844,7 @@ function blockInspector(m, b) {
       <div class="field"><label for="bLen">Default length (min)</label><input class="txt num" id="bLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${b.len}" data-f="bLen"></div>
     </div>
     <div class="field"><label for="bTarget">Target, two-week total (min)</label><input class="txt num" id="bTarget" type="number" min="0" placeholder="None" value="${b.target ?? ''}" data-f="bTarget"></div>
+    <div class="field"><label for="bNote">Note</label><textarea class="txt note-in" id="bNote" maxlength="${NOTE_MAX}" rows="3" placeholder="Shown when you hover over this block" data-f="bNote">${esc(b.note)}</textarea></div>
     <div class="field"><span class="lab">Color</span><div class="btnrow">${HUES.map(h => `<button class="chip" style="--h:${h};width:22px;height:22px;padding:0;cursor:pointer" data-act="hue" data-h="${h}" aria-label="Color ${h}"${h === b.hue ? ' aria-pressed="true"' : ''}>${h === b.hue ? '<span style="margin:auto">✓</span>' : ''}</button>`).join('')}</div></div>
     <p class="hint">Placed ${n} time${n === 1 ? '' : 's'}. Changing the default updates every placement without its own length.
       ${b.len !== typeOf(m, b.cat).len ? `<br>The ${esc(typeName(m, b.cat))} default is ${typeOf(m, b.cat).len} min.` : ''}</p>
@@ -851,6 +863,7 @@ function typeInspector(m, t) {
       <p class="hint">New ${esc(t.name)} blocks start at this length. Apply to all sets every ${esc(t.name)} block to it.</p></div>
     <label class="check"><input type="checkbox" id="tAcad" data-f="tAcad"${t.academic ? ' checked' : ''}> Counts as class time</label>
     <p class="hint">Types that count as class time are added into class time and the class target.</p>
+    <div class="field"><label for="tNote">Note</label><textarea class="txt note-in" id="tNote" maxlength="${NOTE_MAX}" rows="3" placeholder="Shown when you hover over this type or its blocks" data-f="tNote">${esc(t.note)}</textarea></div>
     <p class="hint">${n} block${n === 1 ? '' : 's'} of this type.</p>
     <div class="btnrow"><button class="btn sm" data-act="addBlockOfType" data-type="${esc(t.id)}">Add a block</button>
       ${builtin ? '' : '<button class="btn sm danger" data-act="delType">Delete type</button>'}</div></div>`;
@@ -915,9 +928,9 @@ function renderLengths(c) {
   <div class="tablewrap"><table class="lt"><thead>
     <tr><th class="stick"></th><th></th><th colspan="7" class="wkstart">Week 1</th><th colspan="7" class="wkstart">Week 2</th><th class="wkstart"></th></tr>
     <tr><th class="stick">Block</th><th>Default</th>${days.map(d => `<th class="${d % 7 === 0 ? 'wkstart' : ''}">${DAYS[d % 7]}</th>`).join('')}<th class="wkstart">2-wk (${unitLabel()})</th></tr></thead>
-    <tbody>${typeGroups(m).map(g => `<tr class="tyrow"><th class="stick">${esc(g.name)}</th><td colspan="${days.length + 2}"></td></tr>${g.blocks.map(b => {
+    <tbody>${typeGroups(m).map(g => `<tr class="tyrow"><th class="stick"><span data-tiptype="${esc(g.id)}">${esc(g.name)}${g.type.note ? '<span class="nmark">ⓘ</span>' : ''}</span></th><td colspan="${days.length + 2}"></td></tr>${g.blocks.map(b => {
       const tg = targetState(b.target, t.all.blocks[b.id]);
-      return `<tr><td class="stick"><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}</td>
+      return `<tr><td class="stick"><span data-tipblock="${esc(b.id)}"><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span></td>
       <td><input id="ltd-${esc(b.id)}" type="number" min="5" max="${LIM.len[1]}" step="5" value="${b.len}" data-f="ltDefault" data-b="${esc(b.id)}" aria-label="${esc(b.name)} default length"></td>
       ${days.map(d => `<td class="${d % 7 === 0 ? 'wkstart' : ''}">${cell(b, d)}</td>`).join('')}
       <td class="wkstart num">${fmtR(t.all.blocks[b.id])}${tg ? ` <span class="pill ${tg.met ? 'met' : 'short'}">${tg.met ? 'Met' : `${fmt(tg.short)} short`}</span>` : ''}</td></tr>`;
@@ -1174,6 +1187,8 @@ const fields = {
     commit(m => { const t = typeById(m, S.sel.id); if (t) t.len = n; });
   },
   tAcad(v, el) { const on = el.checked; commit(m => { const t = typeById(m, S.sel.id); if (t) t.academic = on; }); },
+  tNote(v) { const note = cleanNote(v), id = S.sel.id; commit(m => { const t = typeById(m, id); if (t) t.note = note; }); },
+  bNote(v) { const note = cleanNote(v), id = S.sel.id; commit(m => { const b = blockOf(m, id); if (b) b.note = note; }); },
   mPass(v) { const n = within(v, LIM.pass); if (n != null) commit(m => { m.passing = n; }); else { toast(rangeMsg('Passing', LIM.pass)); queueRender(); } },
   mStart(v) {
     const t = parseTime(v); if (t == null) return queueRender();
@@ -1402,12 +1417,74 @@ function cancelPointer() {
   document.body.classList.remove('dragging', 'sizing'); render();
 }
 
+/* ---------- Hover card ----------
+   Hovering over (or tabbing to) a block or a type shows what it is and its notes: a calendar block,
+   a tray chip, a type header, or a block or type name in the ledger or Length table. */
+const hc = $('#hovercard');
+let hcTimer = null, hcFor = null;
+const TIP_SEL = '.blk[data-item], [data-pal], [data-tipblock], [data-tiptype], .tname[data-type]';
+const tipTarget = el => el?.closest?.(TIP_SEL) || null;
+function tipHTML(el) {
+  const m = M(), note = (label, text) => text ? `<div class="hc-note"><span class="hc-lab">${esc(label)}</span>${esc(text)}</div>` : '';
+  const typeId = el.dataset.tiptype || (el.classList.contains('tname') ? el.dataset.type : null);
+  if (typeId) {
+    const t = typeById(m, typeId); if (!t) return '';
+    const n = m.blocks.filter(b => b.cat === t.id).length;
+    return `<div class="hc-title">${esc(t.name)}</div>
+      <div class="hc-meta">Type · ${t.academic ? 'counts as class time' : 'not class time'} · new blocks ${t.len} min · ${n} block${n === 1 ? '' : 's'}</div>${note('Type note', t.note)}`;
+  }
+  let b, meta;
+  if (el.dataset.item) {
+    const f = findItem(m, el.dataset.item); if (!f || f.it.t !== 'b') return '';
+    b = blockOf(m, f.it.blockId); if (!b) return '';
+    const L = layoutSeq(m, f.seq, f.top ? m.days[f.d].start : layoutFor(m, f.split, f.d).start, f.top)[f.idx], mins = L.end - L.start;
+    meta = `${esc(dayName(f.d))}${f.top ? '' : `, lane ${f.lane + 1}`} · ${clock(L.start)}–${clock(L.end)} · ${mins} min${mins !== b.len ? ` (default ${b.len})` : ''}`;
+  } else {
+    b = blockOf(m, el.dataset.pal || el.dataset.tipblock); if (!b) return '';
+    const n = placements(m, b.id).length;
+    meta = `${b.len} min · placed ${n} time${n === 1 ? '' : 's'}`;
+  }
+  const t = typeOf(m, b.cat);
+  return `<div class="hc-title"><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}</div>
+    <div class="hc-meta">${esc(t.name)}${t.academic ? '' : ' (not class time)'} · ${meta}</div>${note('Block note', b.note)}${note(`${t.name} note`, t.note)}`;
+}
+function showTip(el) {
+  hcTimer = null;
+  if (!document.contains(el) || P || dlg.open) return;
+  const html = tipHTML(el); if (!html) return;
+  hc.innerHTML = html; hc.hidden = false;
+  // Beside the item when there is room, otherwise below it, always inside the window.
+  const r = el.getBoundingClientRect(), w = hc.offsetWidth, h = hc.offsetHeight, pad = 8, W = innerWidth, H = innerHeight;
+  let x = r.right + pad, y = r.top;
+  if (x + w > W - pad) x = r.left - pad - w;
+  if (x < pad) { x = clamp(r.left, pad, W - w - pad); y = r.bottom + pad + h > H - pad ? r.top - pad - h : r.bottom + pad; }
+  hc.style.transform = `translate(${Math.round(x)}px, ${Math.round(clamp(y, pad, H - h - pad))}px)`;
+}
+function hideTip() { clearTimeout(hcTimer); hcTimer = null; hcFor = null; hc.hidden = true; }
+document.addEventListener('mouseover', e => {
+  if (P || dlg.open) return;
+  const el = tipTarget(e.target);
+  if (el === hcFor) return;
+  hideTip();
+  if (el) { hcFor = el; hcTimer = setTimeout(() => showTip(el), 350); }
+});
+document.addEventListener('mouseout', e => { if (hcFor && !hcFor.contains(e.relatedTarget)) hideTip(); });
+// Keyboard focus shows the card at once; a mouse click that focuses something does not.
+document.addEventListener('focusin', e => {
+  const el = tipTarget(e.target);
+  if (el && el === e.target && e.target.matches(':focus-visible')) { hideTip(); hcFor = el; showTip(el); }
+});
+document.addEventListener('focusout', e => { if (hcFor && e.target === hcFor) hideTip(); });
+document.addEventListener('pointerdown', () => hideTip(), true);
+window.addEventListener('scroll', () => hideTip(), true);
+window.addEventListener('blur', () => hideTip());
+
 /* ---------- Keyboard ---------- */
 document.addEventListener('keydown', e => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.closest('dialog');
   if ((e.ctrlKey || e.metaKey) && !typing && e.key.toLowerCase() === 'z') { e.preventDefault(); (e.shiftKey ? actions.redo : actions.undo)(); return; }
   if ((e.ctrlKey || e.metaKey) && !typing && e.key.toLowerCase() === 'y') { e.preventDefault(); actions.redo(); return; }
-  if (e.key === 'Escape') { if (P) cancelPointer(); else if (S.sel && !typing) { S.sel = null; render(); } return; }
+  if (e.key === 'Escape') { if (!hc.hidden) { hideTip(); return; } if (P) cancelPointer(); else if (S.sel && !typing) { S.sel = null; render(); } return; }
   if (typing) return;
   const el = e.target.closest?.('[data-item],[data-pal]');
   if (el && (e.key === 'Enter' || e.key === ' ')) {
@@ -1504,10 +1581,10 @@ function scheduleCSV(m) {
   return csv(rows);
 }
 function totalsCSV(m) {
-  const t = totals(m), rows = [['Item', 'Type', 'Week 1 min', 'Week 2 min', 'Two-week min', 'Two-week target', 'Status']];
+  const t = totals(m), rows = [['Item', 'Type', 'Week 1 min', 'Week 2 min', 'Two-week min', 'Two-week target', 'Status', 'Block note', 'Type note']];
   const st = s => !s ? '' : s.met ? 'Met' : `${s.short} short`;
   rows.push(['All class time', 'Class time', plainR(t.w[0].acad), plainR(t.w[1].acad), plainR(t.all.acad), m.classTarget ?? '', st(targetState(m.classTarget, t.all.acad))]);
-  sortedBlocks(m).forEach(b => rows.push([b.name, typeName(m, b.cat), plainR(t.w[0].blocks[b.id]), plainR(t.w[1].blocks[b.id]), plainR(t.all.blocks[b.id]), b.target ?? '', st(targetState(b.target, t.all.blocks[b.id]))]));
+  sortedBlocks(m).forEach(b => rows.push([b.name, typeName(m, b.cat), plainR(t.w[0].blocks[b.id]), plainR(t.w[1].blocks[b.id]), plainR(t.all.blocks[b.id]), b.target ?? '', st(targetState(b.target, t.all.blocks[b.id])), b.note, typeOf(m, b.cat).note]));
   rows.push(['Passing', 'Passing', plainR(t.w[0].pass), plainR(t.w[1].pass), plainR(t.all.pass), '', '']);
   return csv(rows);
 }
