@@ -358,17 +358,20 @@ textarea.note-in { min-height: 58px; resize: vertical; font: 13px/1.4 var(--f-bo
 'use strict';
 /* ---------- Constants ---------- */
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-/* Every model starts with these five types, always first and in this order. They can't be renamed or deleted
-   (old files and the school models refer to them by id). A model adds its own types after them.
+/* Every model has these three types. They can't be renamed or deleted (old files and the school models refer
+   to them by id). Every other type is the model's own and can be renamed or deleted; that includes Advisory
+   and Break, which were built in before.
    A type that counts as class time is "academic": it counts toward class time, the class target and runs. */
 const BUILTIN = [
   { id: 'class', name: 'Class', len: 50, academic: true },
-  { id: 'advisory', name: 'Advisory', len: 25, academic: false },
   { id: 'lunch', name: 'Lunch', len: 30, academic: false },
-  { id: 'break', name: 'Break', len: 10, academic: false },
   { id: 'other', name: 'Other', len: 30, academic: false },
 ];
 const BUILTIN_IDS = new Set(BUILTIN.map(t => t.id));
+/* A version 1 file has no type list: its blocks name one of these five types by id, listed here in their old order.
+   Advisory and Break become the model's own types, and only when one of its blocks uses them. */
+const V1_TYPES = [BUILTIN[0], { id: 'advisory', name: 'Advisory', len: 25, academic: false },
+  BUILTIN[1], { id: 'break', name: 'Break', len: 10, academic: false }, BUILTIN[2]];
 const NOTE_MAX = 500, TYPE_NAME_MAX = 30;
 // Version 2 added each model's own types (with default lengths) and notes on types, blocks and single placements.
 // Version 1 files still import.
@@ -470,8 +473,10 @@ function normalizeModel(m, otherModelNames) {
 function sampleModels() {
   const p = [1, 2, 3, 4, 5, 6, 7].map((n, i) => mkBlock(`Period ${n}`, 'class', 47, HUES[i], n === 1 ? 450 : n === 7 ? 470 : null));
   const lunch = mkBlock('Lunch', 'lunch', 30, HUES[9]);
-  const adv = mkBlock('Advisory', 'advisory', 25, HUES[10]);
+  const advType = { id: uid(), name: 'Advisory', len: 25, academic: false, note: '' };
+  const adv = mkBlock('Advisory', advType.id, 25, HUES[10]);
   const a = mkModel('Sample: seven periods', [...p, lunch, adv], { classTarget: 3150, lens: { class: 47 } });
+  a.types.splice(1, 0, advType);
   for (const w of [0, 7]) for (const i of [1, 2, 3, 4, 5]) {
     const day = a.days[w + i];
     if (i === 3) { // Late-start Wednesday with shorter periods
@@ -1949,8 +1954,9 @@ function cleanModel(raw, fromStorage = false) {
   const used = new Set();
   const newId = v => { const id = fromStorage && safeId(v) && !used.has(v) ? v : uid(); used.add(id); return id; };
   const list = v => Array.isArray(v) ? v : [];
-  /* Types. The five built-ins always come first, in their fixed order, then the model's own types.
-     A version 1 file has no types: each built-in then takes the most common length among its blocks,
+  /* Types, in the order the input lists them. Class, Lunch and Other are always kept, and one the input leaves
+     out is added at the end. A version 1 file has no types: it gets Class, Lunch and Other, plus Advisory and
+     Break when a block uses them (see V1_TYPES). Each then takes the most common length among its blocks,
      and Class takes the old model-wide default length (blockLen) when there is one. */
   const rawTypes = Array.isArray(raw.types) ? raw.types.filter(t => t && typeof t === 'object') : null;
   const commonLen = cat => {
@@ -1961,24 +1967,38 @@ function cleanModel(raw, fromStorage = false) {
     return best;
   };
   const typeMap = new Map(); // type id in the input -> type id in the app
-  const types = BUILTIN.map(bt => {
-    const r = rawTypes?.find(t => t.id === bt.id);
+  const types = [];
+  const fixedType = (bt, r) => {
     typeMap.set(bt.id, bt.id);
     const oldLen = bt.id === 'class' ? within(raw.blockLen, LIM.len) : null;
-    return {
+    types.push({
       id: bt.id, name: bt.name,
       len: r ? fit(r.len, LIM.len, bt.len) : (oldLen ?? commonLen(bt.id) ?? bt.len),
       academic: r ? r.academic === true : bt.academic, note: cleanNote(r?.note),
-    };
-  });
-  const custom = (rawTypes || []).filter(t => !BUILTIN_IDS.has(t.id));
-  limit(custom.length + BUILTIN.length, MAX.types, 'types');
-  custom.slice(0, MAX.types - BUILTIN.length).forEach(t => {
+    });
+  };
+  // The model's own types never take the name of one of the three fixed ones.
+  const ownType = (t, fallbackLen, academic) => {
     const id = newId(t.id);
     if (t.id != null && !typeMap.has(String(t.id))) typeMap.set(String(t.id), id);
-    const name = uniqueName(String(t.name ?? '').trim().slice(0, TYPE_NAME_MAX) || 'Type', types.map(x => x.name));
-    types.push({ id, name, len: fit(t.len, LIM.len, 30), academic: t.academic === true, note: cleanNote(t.note) });
-  });
+    const name = uniqueName(String(t.name ?? '').trim().slice(0, TYPE_NAME_MAX) || 'Type', [...types.map(x => x.name), ...BUILTIN.map(x => x.name)]);
+    types.push({ id, name, len: fit(t.len, LIM.len, fallbackLen), academic, note: cleanNote(t.note) });
+  };
+  if (rawTypes) {
+    const own = rawTypes.filter(t => !BUILTIN_IDS.has(t.id));
+    limit(own.length + BUILTIN.length, MAX.types, 'types');
+    const keep = new Set(own.slice(0, MAX.types - BUILTIN.length));
+    rawTypes.forEach(t => {
+      const bt = BUILTIN.find(x => x.id === t.id);
+      if (bt) { if (!typeMap.has(bt.id)) fixedType(bt, t); } else if (keep.has(t)) ownType(t, 30, t.academic === true);
+    });
+    BUILTIN.forEach(bt => { if (!typeMap.has(bt.id)) fixedType(bt, null); });
+  } else {
+    V1_TYPES.forEach(vt => {
+      if (BUILTIN_IDS.has(vt.id)) fixedType(vt, null);
+      else if (raw.blocks.some(b => b?.cat === vt.id)) ownType({ ...vt, len: commonLen(vt.id) ?? vt.len }, vt.len, vt.academic);
+    });
+  }
   const idMap = new Map(); // block id in the input -> block id in the app. A repeated id maps to its first block only.
   const blocks = raw.blocks.map((b, i) => {
     b = b && typeof b === 'object' ? b : {};
