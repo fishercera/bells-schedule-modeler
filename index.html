@@ -684,7 +684,7 @@ function renderLeft() {
         ${g.blocks.map(b => `
         <div class="chip${S.sel?.kind === 'block' && S.sel.id === b.id ? ' on' : ''}" style="--h:${b.hue}" ${isAcad(m, b) ? '' : 'data-noncat'}
           data-pal="${esc(b.id)}" role="button" tabindex="0" title="${esc(b.name)}: ${esc(g.name)}, placed ${usedIn(b.id)} times">
-          <span class="nm">${esc(b.name)}</span><span class="ln">${b.len}m</span></div>`).join('')}
+          <span class="nm">${esc(b.name)}</span><span class="ln"${b.len !== g.type.len ? ` title="${esc(g.name)} default is ${g.type.len} min"` : ''}>${b.len}m${b.len !== g.type.len ? '*' : ''}</span></div>`).join('')}
       </div>`).join('')}</div>
     <div class="btnrow"><button class="btn sm" data-act="addType" ${m.types.length >= MAX.types ? 'disabled' : ''}>Add type</button></div>
   </div>
@@ -834,8 +834,10 @@ function blockInspector(m, b) {
     </div>
     <div class="field"><label for="bTarget">Target, two-week total (min)</label><input class="txt num" id="bTarget" type="number" min="0" placeholder="None" value="${b.target ?? ''}" data-f="bTarget"></div>
     <div class="field"><span class="lab">Color</span><div class="btnrow">${HUES.map(h => `<button class="chip" style="--h:${h};width:22px;height:22px;padding:0;cursor:pointer" data-act="hue" data-h="${h}" aria-label="Color ${h}"${h === b.hue ? ' aria-pressed="true"' : ''}>${h === b.hue ? '<span style="margin:auto">✓</span>' : ''}</button>`).join('')}</div></div>
-    <p class="hint">Placed ${n} time${n === 1 ? '' : 's'}. Changing the default updates every placement without its own length.</p>
-    <div class="btnrow"><button class="btn sm danger" data-act="delBlock">Delete block</button></div></div>`;
+    <p class="hint">Placed ${n} time${n === 1 ? '' : 's'}. Changing the default updates every placement without its own length.
+      ${b.len !== typeOf(m, b.cat).len ? `<br>The ${esc(typeName(m, b.cat))} default is ${typeOf(m, b.cat).len} min.` : ''}</p>
+    <div class="btnrow">${b.len !== typeOf(m, b.cat).len ? `<button class="btn sm" data-act="useTypeLen">Use ${esc(typeName(m, b.cat))} default</button>` : ''}
+      <button class="btn sm danger" data-act="delBlock">Delete block</button></div></div>`;
 }
 function typeInspector(m, t) {
   if (!t) return '';
@@ -843,8 +845,10 @@ function typeInspector(m, t) {
   return `<div class="panel insp"><div class="panelhead"><h2>Type</h2>${closeBtn}</div>
     <div class="field"><label for="tName">Name</label><input class="txt" id="tName" maxlength="${TYPE_NAME_MAX}" value="${esc(t.name)}" data-f="tName"${builtin ? ' disabled' : ''}>
       ${builtin ? '<p class="hint">Built-in types keep their names.</p>' : ''}</div>
-    <div class="field"><label for="tLen">Default length (min)</label><input class="txt num" id="tLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${t.len}" data-f="tLen">
-      <p class="hint">New ${esc(t.name)} blocks start at this length.</p></div>
+    <div class="field"><label for="tLen">Default length (min)</label>
+      <div class="inline"><input class="txt num" id="tLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${t.len}" data-f="tLen">
+      <button class="btn sm" data-act="applyTypeLenDlg" ${n ? '' : 'disabled'}>Apply to all ${n || ''}…</button></div>
+      <p class="hint">New ${esc(t.name)} blocks start at this length. Apply to all sets every ${esc(t.name)} block to it.</p></div>
     <label class="check"><input type="checkbox" id="tAcad" data-f="tAcad"${t.academic ? ' checked' : ''}> Counts as class time</label>
     <p class="hint">Types that count as class time are added into class time and the class target.</p>
     <p class="hint">${n} block${n === 1 ? '' : 's'} of this type.</p>
@@ -1061,6 +1065,8 @@ const actions = {
   addBlock() { let b; commit(m => { b = addBlockTo(m); }); S.sel = { kind: 'block', id: b.id }; render(); $('#bName')?.select(); },
   addBlockOfType(el) { let b; commit(m => { b = addBlockTo(m, el.dataset.type); }); S.sel = { kind: 'block', id: b.id }; render(); $('#bName')?.select(); },
   selType(el) { S.sel = { kind: 'type', id: el.dataset.type }; render(); },
+  applyTypeLenDlg() { applyTypeLenDlg(S.sel.id); },
+  useTypeLen() { const id = S.sel.id; commit(m => { const b = blockOf(m, id); setBlockLen(m, b, typeOf(m, b.cat).len); }); },
   addType() {
     if (M().types.length >= MAX.types) return toast(`A model can have at most ${MAX.types} types.`);
     let t; commit(m => { t = { id: uid(), name: uniqueName('New type', typeNames(m)), len: 30, academic: false, note: '' }; m.types.push(t); });
@@ -1181,7 +1187,17 @@ const fields = {
     commit(m => { blockOf(m, id).name = name; });
     if (name !== want) toast(`Another block is already named ${want}, so this one is ${name}.`);
   },
-  bCat(v) { commit(m => { blockOf(m, S.sel.id).cat = v; }); },
+  // A block still at its old type's default takes the new type's default; a block with its own length keeps it.
+  bCat(v) {
+    const id = S.sel.id; let moved = null;
+    commit(m => {
+      const b = blockOf(m, id), from = typeOf(m, b.cat), to = typeById(m, v);
+      if (!to) return;
+      b.cat = to.id;
+      if (b.len === from.len && b.len !== to.len) { setBlockLen(m, b, to.len); moved = to; }
+    });
+    if (moved) toast(`Length set to the ${moved.name} default, ${moved.len} min.`);
+  },
   bLen(v) { setDefaultLen(S.sel.id, v); },
   bTarget(v) { commit(m => { const b = blockOf(m, S.sel.id); b.target = v === '' ? null : posInt(v, b.target); }); },
   dStart(v) { const t = parseTime(v), d = S.sel.d; if (t != null) commit(m => { m.days[d].start = t; }); else queueRender(); },
@@ -1200,12 +1216,13 @@ const fields = {
 function setDefaultLen(id, v) {
   const n = within(v, LIM.len);
   if (n == null) { toast(rangeMsg('Length', LIM.len)); return queueRender(); }
-  const s = snapshot(), m = M(), b = blockOf(m, id);
-  // Placements that already matched the new length no longer need their own value.
-  b.len = n; placements(m, id).forEach(p => { if (p.it.dur === n) p.it.dur = null; });
+  const s = snapshot(), m = M();
+  setBlockLen(m, blockOf(m, id), n);
   if (s.json !== JSON.stringify(m)) pushUndo(s);
   persist(); queueRender();
 }
+// Placements that already matched the new length no longer need their own value.
+function setBlockLen(m, b, n) { b.len = n; placements(m, b.id).forEach(p => { if (p.it.dur === n) p.it.dur = null; }); }
 function setCell(blockId, d, v) {
   const s = snapshot(), m = M(), ps = placements(m, blockId, d);
   if (v === '' || posInt(v) === 0) { ps.forEach(p => p.seq.splice(p.seq.indexOf(p.it), 1)); }
@@ -1519,6 +1536,45 @@ function exportDlg() {
       a.href = URL.createObjectURL(new Blob([area.value], { type: k.ext === 'csv' ? 'text/csv' : 'application/json' }));
       a.download = `${m.name.replace(/[^\w-]+/g, '-').toLowerCase()}-${kind.value}.${k.ext}`;
       a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+  });
+}
+/* Sets every block of one type to a length. Day-specific lengths (a placement with its own length) are kept
+   unless the box to replace them is ticked; one that already equals the new length just goes back to the default. */
+function applyTypeLenDlg(typeId) {
+  const m = M(), t = typeById(m, typeId);
+  if (!t) return;
+  const blocks = m.blocks.filter(b => b.cat === t.id);
+  if (!blocks.length) return toast(`There are no ${t.name} blocks yet.`);
+  openDlg(`<form class="dlg" id="af"><h2>Set every ${esc(t.name)} block to one length</h2>
+    <div class="field"><label for="aLen">Length (min)</label><input class="txt num" id="aLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${t.len}"></div>
+    <p id="aWarn"></p>
+    <label class="check" id="aCustomRow"><input type="checkbox" id="aCustom"> <span id="aCustomTxt"></span></label>
+    <p class="err" id="aErr" hidden></p>
+    <div class="dlgbtns"><button type="button" class="btn" id="aNo">Cancel</button><button type="submit" class="btn primary" id="aGo">Apply</button></div></form>`, d => {
+    const custom = n => blocks.reduce((a, b) => a + placements(m, b.id).filter(p => p.it.dur != null && p.it.dur !== n).length, 0);
+    const update = () => {
+      const n = within($('#aLen', d).value, LIM.len), c = custom(n), differ = blocks.filter(b => b.len !== n);
+      const list = esc(differ.slice(0, 6).map(b => `${b.name} is ${b.len}`).join(', ')) + (differ.length > 6 ? ', …' : '');
+      $('#aWarn', d).innerHTML = n == null ? `Enter a length from ${LIM.len[0]} to ${LIM.len[1]} minutes.`
+        : `This makes ${n} minutes the ${esc(t.name)} default and sets ${blocks.length > 1 ? `all ${blocks.length} ${esc(t.name)} blocks` : `the ${esc(t.name)} block`} to it${differ.length ? ` (now ${list})` : ''}. Undo can reverse this.`;
+      $('#aCustomRow', d).hidden = !c;
+      $('#aCustomTxt', d).textContent = `Also replace ${c} day-specific length${c > 1 ? 's' : ''} set by hand. Unticked, ${c > 1 ? 'they stay' : 'it stays'} as ${c > 1 ? 'they are' : 'it is'}.`;
+      $('#aGo', d).disabled = n == null;
+    };
+    $('#aLen', d).oninput = update; update();
+    $('#aNo', d).onclick = () => dlg.close();
+    $('#af', d).onsubmit = e => {
+      e.preventDefault();
+      const n = within($('#aLen', d).value, LIM.len);
+      if (n == null) { const err = $('#aErr', d); err.hidden = false; err.textContent = `Enter a length from ${LIM.len[0]} to ${LIM.len[1]} minutes.`; return; }
+      const replace = $('#aCustom', d).checked && !$('#aCustomRow', d).hidden, ids = blocks.map(b => b.id), kept = replace ? 0 : custom(n);
+      dlg.close();
+      commit(mm => {
+        typeById(mm, t.id).len = n;
+        ids.forEach(id => { const b = blockOf(mm, id); b.len = n; placements(mm, id).forEach(p => { if (replace || p.it.dur === n) p.it.dur = null; }); });
+      });
+      toast(`Set ${ids.length} ${t.name} block${ids.length > 1 ? 's' : ''} to ${n} minutes${kept ? `. ${kept} day-specific length${kept > 1 ? 's were' : ' was'} kept` : ''}.`);
     };
   });
 }
