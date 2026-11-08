@@ -217,10 +217,16 @@
      "cat": "class",
      "len": 50,
      "hue": 12,
-     "target": 110,
+     "target": 50,
      "note": "",
-     "groups": [],
-     "limit": null
+     "groups": [
+      "xwkijar3f",
+      "xwhj1byyl"
+     ],
+     "limit": {
+      "n": 1,
+      "per": "week"
+     }
     },
     {
      "id": "x8exegz5y",
