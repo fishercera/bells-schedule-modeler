@@ -46,6 +46,8 @@ Transitions and the longest run of class blocks (from the app's own totals):
 | St. Andrew's School (2026-27) | 29 | 29 | 3 | 3h 20m | |
 | Taft (2026-27) | 24 | 24 | 2 | 2h 30m | |
 
+No block in these models is tagged for a student group, so every group (and All students) has exactly the totals in both tables.
+
 Two rows were checked by hand against the published times:
 
 - **Taft:** Week 1 is Mon 5, Tue 5, Wed 1, Thu 6, Fri 5 and Sat 2, for 24 transitions. Week 2 is 5, 5, 3, 6, 5 and 0 (Saturday is Taft Time only), also 24. Its longest run is 2 blocks. Thursday's C (9:05) and D (to 11:35) run 2h 30m, and so do Week 2 Wednesday's C and D. On Monday, Lunch splits each lane's run into two of 2 blocks or fewer.
