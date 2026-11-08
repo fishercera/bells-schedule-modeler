@@ -317,6 +317,7 @@ textarea.note-in { min-height: 58px; resize: vertical; font: 13px/1.4 var(--f-bo
 #hovercard .hc-note { white-space: pre-wrap; overflow-wrap: anywhere; border-top: 1px solid var(--rule); padding-top: 5px; }
 #hovercard .hc-lab { display: block; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 1px; }
 .dlgbtns { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+.solist { margin: 0; padding-left: 20px; display: grid; gap: 2px; }
 .err { color: var(--warn); font-size: 12.5px; }
 #toast { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); padding: 7px 14px; border-radius: 7px; font-weight: 500; box-shadow: var(--shadow); max-width: calc(100vw - 32px); }
 
@@ -371,6 +372,7 @@ textarea.note-in { min-height: 58px; resize: vertical; font: 13px/1.4 var(--f-bo
     <button class="btn" data-act="redo" id="redoBtn" title="Redo (Ctrl+Y)">Redo</button>
     <button class="btn" data-act="exportDlg">Export</button>
     <button class="btn" data-act="importDlg">Import</button>
+    <button class="btn" data-act="startOver" title="Replace the models saved in this browser with the starting models">Start over</button>
     <button class="btn" data-act="pdf" id="pdfBtn" hidden title="Save Week 1 and Week 2 of this model as a PDF">PDF</button>
     <button class="btn" data-act="print" id="printBtn" hidden>Print</button>
   </div>
@@ -1809,6 +1811,7 @@ const actions = {
     });
   },
   exportDlg() { exportDlg(); },
+  startOver() { startOverDlg(); },
   importDlg() { importDlg(); },
 };
 // On a touchscreen a press on a block scrolls instead of starting a drag, so a tap selects it here.
@@ -2486,6 +2489,35 @@ async function savePDF() {
     clearTimeout(slow);
     toast('The PDF couldn\'t be made. Check your internet connection (the PDF maker loads from the web) and try again.');
   } finally { pdfBusy = false; $('#pdfBtn').disabled = false; }
+}
+/* Start over: replaces every model saved in this browser with the starting models (in the published version, the
+   ones the page carries; here, the two samples). Useful after an update to the starting models. It can't be undone,
+   so the dialog offers to download all the current models first. */
+function startOverDlg() {
+  const names = starterModels().map(m => m.name), n = S.models.length;
+  openDlg(`<div class="dlg"><h2>Start over?</h2>
+    <p>This replaces the ${n} model${n > 1 ? 's' : ''} saved in this browser with the ${names.length} starting model${names.length > 1 ? 's' : ''}:</p>
+    <ul class="solist">${names.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+    <p>Models you made or changed here are removed, and Undo can't bring them back. ${canSave() ? 'Download a copy first if you might want them again.' : 'To keep a copy, cancel and use Export, All models, then Copy.'}</p>
+    <div class="dlgbtns"><button class="btn" id="soNo">Cancel</button>${canSave() ? '<button class="btn" id="soSave">Download all models first</button>' : ''}<button class="btn primary" id="soGo">Start over</button></div></div>`, d => {
+    $('#soNo', d).onclick = () => dlg.close();
+    const save = $('#soSave', d);
+    if (save) save.onclick = async () => {
+      const day = new Date().toISOString().slice(0, 10);
+      const ok = await saveFile(`bell-schedule-models-${day}.json`, JSON.stringify({ app: 'bell-schedule-modeler', version: FILE_VERSION, models: S.models }, null, 1), 'application/json');
+      if (ok) { save.textContent = 'Downloaded'; toast(`Saved a copy of all ${S.models.length} models.`); }
+    };
+    $('#soGo', d).onclick = () => {
+      const fresh = starterModels();
+      fresh.forEach((m, i) => normalizeModel(m, fresh.slice(0, i).map(x => x.name)));
+      S.models = fresh; S.activeId = fresh[0].id; S.compare = fresh.slice(0, 2).map(m => m.id); S.cmpGroups = ['all'];
+      S.sel = null; S.view = 'schedule';
+      // Undo steps belong to the models that were just replaced.
+      undoStack = []; redoStack = [];
+      dlg.close(); render(); persist();
+      toast(`Started over with ${fresh.length} starting model${fresh.length > 1 ? 's' : ''}.`);
+    };
+  });
 }
 function exportDlg(pre) {
   const m = M();
