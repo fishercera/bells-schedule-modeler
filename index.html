@@ -2295,6 +2295,34 @@ function groupsCSV(m) {
   sortedBlocks(m).forEach(b => add(b.name, typeName(m, b.cat), 'Two weeks', r => r.t.all.blocks[b.id] ? plainR(r.t.all.blocks[b.id]) : ''));
   return csv(rows);
 }
+/* ---------- Saving files ----------
+   Published on claude.ai, a page can't start a download itself: the downloads capability asks the viewer to confirm
+   each save instead. On this computer the browser saves at once. canSave() says whether this view can save files at
+   all; Download and PDF are hidden when it can't, and Copy still works. */
+let downloadsApi = null;
+if (typeof window.claude?.use === 'function') {
+  window.claude.use('downloads').then(d => { downloadsApi = d || null; }, () => {}).then(() => { if (downloadsApi) render(); });
+}
+const canSave = () => !!downloadsApi || IS_LOCAL;
+// A file name made from a model's name: "H'kiss Block Waterfall" -> "h-kiss-block-waterfall".
+const fileBase = m => m.name.replace(/[^\w-]+/g, '-').toLowerCase();
+// Resolves true once the file is saved (or handed to the browser), false if it wasn't.
+async function saveFile(filename, data, type) {
+  if (downloadsApi) {
+    try { await downloadsApi.save({ filename, data }); return true; }
+    catch (e) {
+      // Saying no to the save prompt isn't an error.
+      if (e?.code === 'declined') return false;
+      toast(e?.code === 'rate_limited' ? 'Another save is waiting for your answer. Answer it first.' : 'This file couldn\'t be saved here. For JSON and CSV, use Copy instead.');
+      return false;
+    }
+  }
+  if (!IS_LOCAL) { toast('This view can\'t save files. For JSON and CSV, use Copy instead.'); return false; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type }));
+  a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  return true;
+}
 function exportDlg(pre) {
   const m = M();
   const kinds = {
@@ -2307,7 +2335,7 @@ function exportDlg(pre) {
   openDlg(`<div class="dlg"><h2>Export</h2>
     <div class="field"><label for="xKind">What to export</label><select class="txt" id="xKind">${Object.entries(kinds).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select></div>
     <textarea class="txt" id="xText" readonly aria-label="Exported text"></textarea>
-    <div class="dlgbtns"><button class="btn" id="xClose">Close</button><button class="btn" id="xCopy">Copy</button>${IS_LOCAL ? '<button class="btn primary" id="xSave">Download</button>' : ''}</div></div>`, d => {
+    <div class="dlgbtns"><button class="btn" id="xClose">Close</button><button class="btn" id="xCopy">Copy</button>${canSave() ? '<button class="btn primary" id="xSave">Download</button>' : ''}</div></div>`, d => {
     const area = $('#xText', d), kind = $('#xKind', d), fill = () => { area.value = kinds[kind.value].text(); };
     if (pre && kinds[pre]) kind.value = pre;
     kind.onchange = fill; fill();
@@ -2318,10 +2346,8 @@ function exportDlg(pre) {
     };
     const save = $('#xSave', d);
     if (save) save.onclick = () => {
-      const k = kinds[kind.value], a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([area.value], { type: k.ext === 'csv' ? 'text/csv' : 'application/json' }));
-      a.download = `${m.name.replace(/[^\w-]+/g, '-').toLowerCase()}-${kind.value}.${k.ext}`;
-      a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      const k = kinds[kind.value];
+      saveFile(`${fileBase(m)}-${kind.value}.${k.ext}`, area.value, k.ext === 'csv' ? 'text/csv' : 'application/json');
     };
   });
 }
