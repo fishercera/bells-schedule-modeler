@@ -14,7 +14,7 @@ A single-page, self-contained HTML tool for modeling and comparing school bell s
 
 Open `index.html`, click **Import**, and choose either `school-models/all-schools.json` (every school at once) or a single school's file, or one of the Hotchkiss proposals.
 
-These files are export version 1. The app now exports version 2, which adds each model's own types (with default lengths and a "counts as class time" flag) and notes on blocks and types. Version 1 files still import unchanged: each built-in type takes the most common length among its blocks.
+These files are export version 1. The app now exports version 2, which adds each model's own types (with default lengths and a "counts as class time" flag) and notes on types, blocks and single placements. Version 1 files still import unchanged: each built-in type takes the most common length among its blocks.
 
 ## Not in the repo
 

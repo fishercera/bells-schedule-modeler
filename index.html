@@ -370,7 +370,8 @@ const BUILTIN = [
 ];
 const BUILTIN_IDS = new Set(BUILTIN.map(t => t.id));
 const NOTE_MAX = 500, TYPE_NAME_MAX = 30;
-// Version 2 added each model's own types (with default lengths) and notes. Version 1 files still import.
+// Version 2 added each model's own types (with default lengths) and notes on types, blocks and single placements.
+// Version 1 files still import.
 const FILE_VERSION = 2;
 const HUES = [212, 158, 32, 340, 268, 186, 95, 12, 240, 52, 300, 130];
 const SNAP = 5, MIN_LEN = 5, MAX_LANES = 4;
@@ -931,9 +932,9 @@ function seqHTML(m, items, t0, origin, top, d) {
       if (b) {
         const on = isSel(it.id), mins = end - start, changed = it.dur != null && it.dur !== b.len;
         out += `<div class="blk${on ? ' on' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px" ${isAcad(m, b) ? '' : 'data-noncat'} data-item="${esc(it.id)}" tabindex="0" role="button"
-          aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes${b.note ? ', has a note' : ''}">
+          aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes${it.note ? ', has a note for this day' : ''}${b.note ? ', has a block note' : ''}">
           <span class="rz t" data-rz="t"></span>
-          <span class="nm">${esc(b.name)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>
+          <span class="nm">${esc(b.name)}${it.note ? '<span class="nmark">✎</span>' : ''}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>
           ${h >= 30 ? `<span class="tm">${clock(start)}–${clock(end)}</span>` : ''}
           ${h >= 42 ? `<span class="tm">${changed ? `<span class="mod">${mins}m*</span>` : `${mins}m`}</span>` : ''}
           <span class="rz b" data-rz="b"></span></div>`;
@@ -1060,6 +1061,7 @@ function itemInspector(m, f) {
       <div class="field"><label for="iLen">Length (min)</label><input class="txt num" id="iLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${dur}" data-f="iLen"></div>
     </div>
     ${showGap ? `<div class="field"><label for="iGap">Passing before this block (min)</label><input class="txt num" id="iGap" type="number" min="0" max="${LIM.gap[1]}" step="1" value="${L.gap}" data-f="iGap"></div>` : ''}
+    <div class="field"><label for="iNote">Note for this day only</label><textarea class="txt note-in" id="iNote" maxlength="${NOTE_MAX}" rows="2" placeholder="Shown when you hover over this placement (marked ✎)" data-f="iNote">${esc(f.it.note ?? '')}</textarea></div>
     <p class="hint">Ends ${clock(L.end)}. ${custom ? `This placement differs from the ${b.len} min default.` : `Using the ${b.len} min default.`}</p>
     <div class="btnrow">
       ${custom ? '<button class="btn sm" data-act="resetLen">Use default length</button>' : ''}
@@ -1480,6 +1482,7 @@ const fields = {
   dStart(v) { const t = parseTime(v), d = S.sel.d; if (t != null) commit(m => { m.days[d].start = t; }); else queueRender(); },
   dAdd(v) { const d = S.sel.d; if (v) commit(m => { m.days[d].items.push(mkItem(v)); }); },
   iBlock(v) { commit(m => { const it = findItem(m, S.sel.id).it; it.blockId = v; it.dur = null; }); },
+  iNote(v) { const note = cleanNote(v), id = S.sel.id; commit(m => { const f = findItem(m, id); if (!f || f.it.t !== 'b') return; if (note) f.it.note = note; else delete f.it.note; }); },
   iLen(v) { const n = within(v, LIM.len); if (n != null) commit(m => { const f = findItem(m, S.sel.id); setDur(m, f.it, n); }); else { toast(rangeMsg('Length', LIM.len)); queueRender(); } },
   iGap(v) { const n = within(v, LIM.gap); if (n != null) commit(m => { setGap(m, findItem(m, S.sel.id), n); }); else { toast(rangeMsg('Passing', LIM.gap)); queueRender(); } },
   iStart(v) { const t = parseTime(v); if (t != null) commit(m => { setStart(m, findItem(m, S.sel.id), t); }); else queueRender(); },
@@ -1709,12 +1712,13 @@ function tipHTML(el) {
     return `<div class="hc-title">${esc(t.name)}</div>
       <div class="hc-meta">Type · ${t.academic ? 'counts as class time' : 'not class time'} · new blocks ${t.len} min · ${n} block${n === 1 ? '' : 's'}</div>${note('Type note', t.note)}`;
   }
-  let b, meta;
+  let b, meta, own = '';
   if (el.dataset.item) {
     const f = findItem(m, el.dataset.item); if (!f || f.it.t !== 'b') return '';
     b = blockOf(m, f.it.blockId); if (!b) return '';
     const L = layoutSeq(m, f.seq, f.top ? m.days[f.d].start : layoutFor(m, f.split, f.d).start, f.top)[f.idx], mins = L.end - L.start;
     meta = `${esc(dayName(f.d))}${f.top ? '' : `, lane ${f.lane + 1}`} · ${clock(L.start)}–${clock(L.end)} · ${mins} min${mins !== b.len ? ` (default ${b.len})` : ''}`;
+    own = note(`${dayName(f.d)} note`, f.it.note);
   } else {
     b = blockOf(m, el.dataset.pal || el.dataset.tipblock); if (!b) return '';
     const n = placements(m, b.id).length;
@@ -1722,7 +1726,7 @@ function tipHTML(el) {
   }
   const t = typeOf(m, b.cat);
   return `<div class="hc-title"><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}</div>
-    <div class="hc-meta">${esc(t.name)}${t.academic ? '' : ' (not class time)'} · ${meta}</div>${note('Block note', b.note)}${note(`${t.name} note`, t.note)}`;
+    <div class="hc-meta">${esc(t.name)}${t.academic ? '' : ' (not class time)'} · ${meta}</div>${own}${note('Block note', b.note)}${note(`${t.name} note`, t.note)}`;
 }
 function showTip(el) {
   hcTimer = null;
@@ -1849,8 +1853,8 @@ const csvCell = v => {
 const csv = rows => rows.map(r => r.map(csvCell).join(',')).join('\r\n');
 const plainR = r => !r ? 0 : r.lo === r.hi ? r.lo : `${r.lo}-${r.hi}`;
 function scheduleCSV(m) {
-  const rows = [['Week', 'Day', 'Lane', 'Start', 'End', 'Block', 'Type', 'Minutes', 'Passing before']];
-  const add = (d, lane, x, extra = 0) => { const b = blockOf(m, x.it.blockId); rows.push([d < 7 ? 1 : 2, DAYS[d % 7], lane, hhmm(x.start), hhmm(x.end), b.name, typeName(m, b.cat), x.end - x.start, x.gap + extra]); };
+  const rows = [['Week', 'Day', 'Lane', 'Start', 'End', 'Block', 'Type', 'Minutes', 'Passing before', 'Note']];
+  const add = (d, lane, x, extra = 0) => { const b = blockOf(m, x.it.blockId); rows.push([d < 7 ? 1 : 2, DAYS[d % 7], lane, hhmm(x.start), hhmm(x.end), b.name, typeName(m, b.cat), x.end - x.start, x.gap + extra, x.it.note ?? '']); };
   m.days.forEach((day, d) => layoutSeq(m, day.items, day.start, true).forEach(x => {
     if (x.it.t === 'b') add(d, '', x);
     else x.it.lanes.forEach((l, li) => layoutSeq(m, l, x.start, false).forEach((y, yi) => add(d, li + 1, y, yi === 0 ? x.gap : 0)));
@@ -1994,7 +1998,10 @@ function cleanModel(raw, fromStorage = false) {
       // A split with nothing in it would only add a passing period, so it is dropped.
       return lanes.some(l => l.length) ? { id: newId(it.id), t: 's', gap: opt(it.gap, LIM.gap), lanes } : null;
     }
-    if (it.t === 'b' && idMap.has(String(it.blockId))) return { id: newId(it.id), t: 'b', blockId: idMap.get(String(it.blockId)), dur: opt(it.dur, LIM.len), gap: opt(it.gap, LIM.gap) };
+    if (it.t === 'b' && idMap.has(String(it.blockId))) {
+      const note = cleanNote(it.note);
+      return { id: newId(it.id), t: 'b', blockId: idMap.get(String(it.blockId)), dur: opt(it.dur, LIM.len), gap: opt(it.gap, LIM.gap), ...(note ? { note } : {}) };
+    }
     return null;
   };
   return {
