@@ -1,0 +1,16 @@
+# Source PDFs and screenshots used to build the peer-school models (kept locally)
+ScheduleDocs/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Claude Code local files
+.claude/

@@ -1,0 +1,950 @@
+{
+ "app": "bell-schedule-modeler",
+ "version": 1,
+ "models": [
+  {
+   "name": "Blair Academy",
+   "passing": 10,
+   "defaultStart": 510,
+   "blockLen": 60,
+   "classTarget": null,
+   "blocks": [
+    {
+     "id": "b1",
+     "name": "A Block",
+     "cat": "class",
+     "len": 60,
+     "hue": 212,
+     "target": null
+    },
+    {
+     "id": "b2",
+     "name": "B Block",
+     "cat": "class",
+     "len": 60,
+     "hue": 158,
+     "target": null
+    },
+    {
+     "id": "b3",
+     "name": "School Meeting",
+     "cat": "other",
+     "len": 30,
+     "hue": 186,
+     "target": null
+    },
+    {
+     "id": "b4",
+     "name": "C Block",
+     "cat": "class",
+     "len": 60,
+     "hue": 32,
+     "target": null
+    },
+    {
+     "id": "b5",
+     "name": "Lunch",
+     "cat": "lunch",
+     "len": 40,
+     "hue": 52,
+     "target": null
+    },
+    {
+     "id": "b6",
+     "name": "Conference Block",
+     "cat": "other",
+     "len": 35,
+     "hue": 186,
+     "target": null
+    },
+    {
+     "id": "b7",
+     "name": "D Block",
+     "cat": "class",
+     "len": 60,
+     "hue": 340,
+     "target": null
+    },
+    {
+     "id": "b8",
+     "name": "E Block",
+     "cat": "class",
+     "len": 60,
+     "hue": 268,
+     "target": null
+    },
+    {
+     "id": "b9",
+     "name": "F Block",
+     "cat": "class",
+     "len": 60,
+     "hue": 95,
+     "target": null
+    },
+    {
+     "id": "b10",
+     "name": "G Block",
+     "cat": "class",
+     "len": 60,
+     "hue": 12,
+     "target": null
+    },
+    {
+     "id": "b11",
+     "name": "H Block",
+     "cat": "class",
+     "len": 60,
+     "hue": 240,
+     "target": null
+    },
+    {
+     "id": "b12",
+     "name": "Chapel",
+     "cat": "other",
+     "len": 25,
+     "hue": 186,
+     "target": null
+    },
+    {
+     "id": "b13",
+     "name": "Faculty Meeting & PD",
+     "cat": "other",
+     "len": 60,
+     "hue": 186,
+     "target": null
+    },
+    {
+     "id": "b14",
+     "name": "Student Clubs",
+     "cat": "other",
+     "len": 25,
+     "hue": 186,
+     "target": null
+    }
+   ],
+   "days": [
+    {
+     "start": 480,
+     "items": []
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "i1",
+       "t": "b",
+       "blockId": "b1",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i2",
+       "t": "b",
+       "blockId": "b2",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i3",
+       "t": "b",
+       "blockId": "b3",
+       "dur": 40,
+       "gap": 5
+      },
+      {
+       "id": "i4",
+       "t": "s",
+       "gap": 5,
+       "lanes": [
+        [
+         {
+          "id": "i5",
+          "t": "b",
+          "blockId": "b4",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i6",
+          "t": "b",
+          "blockId": "b5",
+          "dur": 60,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "i7",
+          "t": "b",
+          "blockId": "b5",
+          "dur": 60,
+          "gap": null
+         },
+         {
+          "id": "i8",
+          "t": "b",
+          "blockId": "b4",
+          "dur": null,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "i9",
+       "t": "b",
+       "blockId": "b6",
+       "dur": null,
+       "gap": 5
+      },
+      {
+       "id": "i10",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": 5
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "i11",
+       "t": "b",
+       "blockId": "b8",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i12",
+       "t": "b",
+       "blockId": "b9",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i13",
+       "t": "b",
+       "blockId": "b6",
+       "dur": 25,
+       "gap": 5
+      },
+      {
+       "id": "i14",
+       "t": "s",
+       "gap": 5,
+       "lanes": [
+        [
+         {
+          "id": "i15",
+          "t": "b",
+          "blockId": "b10",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i16",
+          "t": "b",
+          "blockId": "b5",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "i17",
+          "t": "b",
+          "blockId": "b5",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i18",
+          "t": "b",
+          "blockId": "b10",
+          "dur": null,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "i19",
+       "t": "b",
+       "blockId": "b11",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i20",
+       "t": "b",
+       "blockId": "b4",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "i21",
+       "t": "b",
+       "blockId": "b11",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i22",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i23",
+       "t": "b",
+       "blockId": "b8",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i24",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "i25",
+          "t": "b",
+          "blockId": "b1",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i26",
+          "t": "b",
+          "blockId": "b5",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "i27",
+          "t": "b",
+          "blockId": "b5",
+          "dur": 30,
+          "gap": null
+         },
+         {
+          "id": "i28",
+          "t": "b",
+          "blockId": "b1",
+          "dur": null,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "i29",
+       "t": "b",
+       "blockId": "b12",
+       "dur": null,
+       "gap": 5
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "i30",
+       "t": "b",
+       "blockId": "b13",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i31",
+       "t": "b",
+       "blockId": "b10",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i32",
+       "t": "b",
+       "blockId": "b14",
+       "dur": null,
+       "gap": 5
+      },
+      {
+       "id": "i33",
+       "t": "s",
+       "gap": 5,
+       "lanes": [
+        [
+         {
+          "id": "i34",
+          "t": "b",
+          "blockId": "b9",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i35",
+          "t": "b",
+          "blockId": "b5",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "i36",
+          "t": "b",
+          "blockId": "b5",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i37",
+          "t": "b",
+          "blockId": "b9",
+          "dur": null,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "i38",
+       "t": "b",
+       "blockId": "b2",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i39",
+       "t": "b",
+       "blockId": "b1",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "i40",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i41",
+       "t": "b",
+       "blockId": "b4",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i42",
+       "t": "b",
+       "blockId": "b6",
+       "dur": null,
+       "gap": 5
+      },
+      {
+       "id": "i43",
+       "t": "s",
+       "gap": 5,
+       "lanes": [
+        [
+         {
+          "id": "i44",
+          "t": "b",
+          "blockId": "b11",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i45",
+          "t": "b",
+          "blockId": "b5",
+          "dur": 65,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "i46",
+          "t": "b",
+          "blockId": "b5",
+          "dur": 65,
+          "gap": null
+         },
+         {
+          "id": "i47",
+          "t": "b",
+          "blockId": "b11",
+          "dur": null,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "i48",
+       "t": "b",
+       "blockId": "b8",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i49",
+       "t": "b",
+       "blockId": "b3",
+       "dur": null,
+       "gap": 5
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "i50",
+       "t": "b",
+       "blockId": "b2",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i51",
+       "t": "b",
+       "blockId": "b9",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i52",
+       "t": "b",
+       "blockId": "b10",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 480,
+     "items": []
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "i53",
+       "t": "b",
+       "blockId": "b1",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i54",
+       "t": "b",
+       "blockId": "b2",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i55",
+       "t": "b",
+       "blockId": "b3",
+       "dur": 25,
+       "gap": 5
+      },
+      {
+       "id": "i56",
+       "t": "s",
+       "gap": 5,
+       "lanes": [
+        [
+         {
+          "id": "i57",
+          "t": "b",
+          "blockId": "b4",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i58",
+          "t": "b",
+          "blockId": "b5",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "i59",
+          "t": "b",
+          "blockId": "b5",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i60",
+          "t": "b",
+          "blockId": "b4",
+          "dur": null,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "i61",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i62",
+       "t": "b",
+       "blockId": "b11",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "i63",
+       "t": "b",
+       "blockId": "b8",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i64",
+       "t": "b",
+       "blockId": "b9",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i65",
+       "t": "b",
+       "blockId": "b6",
+       "dur": 25,
+       "gap": 5
+      },
+      {
+       "id": "i66",
+       "t": "s",
+       "gap": 5,
+       "lanes": [
+        [
+         {
+          "id": "i67",
+          "t": "b",
+          "blockId": "b10",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i68",
+          "t": "b",
+          "blockId": "b5",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "i69",
+          "t": "b",
+          "blockId": "b5",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i70",
+          "t": "b",
+          "blockId": "b10",
+          "dur": null,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "i71",
+       "t": "b",
+       "blockId": "b2",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i72",
+       "t": "b",
+       "blockId": "b4",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "i73",
+       "t": "b",
+       "blockId": "b11",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i74",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i75",
+       "t": "b",
+       "blockId": "b8",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i76",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "i77",
+          "t": "b",
+          "blockId": "b1",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i78",
+          "t": "b",
+          "blockId": "b5",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "i79",
+          "t": "b",
+          "blockId": "b5",
+          "dur": 30,
+          "gap": null
+         },
+         {
+          "id": "i80",
+          "t": "b",
+          "blockId": "b1",
+          "dur": null,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "i81",
+       "t": "b",
+       "blockId": "b10",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i82",
+       "t": "b",
+       "blockId": "b12",
+       "dur": 30,
+       "gap": 5
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "i83",
+       "t": "b",
+       "blockId": "b4",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i84",
+       "t": "b",
+       "blockId": "b10",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i85",
+       "t": "b",
+       "blockId": "b14",
+       "dur": null,
+       "gap": 5
+      },
+      {
+       "id": "i86",
+       "t": "s",
+       "gap": 5,
+       "lanes": [
+        [
+         {
+          "id": "i87",
+          "t": "b",
+          "blockId": "b9",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i88",
+          "t": "b",
+          "blockId": "b5",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "i89",
+          "t": "b",
+          "blockId": "b5",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i90",
+          "t": "b",
+          "blockId": "b9",
+          "dur": null,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "i91",
+       "t": "b",
+       "blockId": "b2",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i92",
+       "t": "b",
+       "blockId": "b1",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "i93",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i94",
+       "t": "b",
+       "blockId": "b9",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i95",
+       "t": "b",
+       "blockId": "b6",
+       "dur": null,
+       "gap": 5
+      },
+      {
+       "id": "i96",
+       "t": "s",
+       "gap": 5,
+       "lanes": [
+        [
+         {
+          "id": "i97",
+          "t": "b",
+          "blockId": "b11",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "i98",
+          "t": "b",
+          "blockId": "b5",
+          "dur": 65,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "i99",
+          "t": "b",
+          "blockId": "b5",
+          "dur": 65,
+          "gap": null
+         },
+         {
+          "id": "i100",
+          "t": "b",
+          "blockId": "b11",
+          "dur": null,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "i101",
+       "t": "b",
+       "blockId": "b8",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i102",
+       "t": "b",
+       "blockId": "b3",
+       "dur": null,
+       "gap": 5
+      }
+     ]
+    },
+    {
+     "start": 480,
+     "items": []
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,661 @@
+{
+ "app": "bell-schedule-modeler",
+ "version": 1,
+ "models": [
+  {
+   "name": "Westminster (2026-27)",
+   "passing": 5,
+   "defaultStart": 500,
+   "blockLen": 70,
+   "classTarget": null,
+   "blocks": [
+    {
+     "id": "b1",
+     "name": "Block 1",
+     "cat": "class",
+     "len": 70,
+     "hue": 212,
+     "target": null
+    },
+    {
+     "id": "b2",
+     "name": "Faculty Meeting",
+     "cat": "other",
+     "len": 55,
+     "hue": 186,
+     "target": null
+    },
+    {
+     "id": "b3",
+     "name": "Block 2",
+     "cat": "class",
+     "len": 70,
+     "hue": 158,
+     "target": null
+    },
+    {
+     "id": "b4",
+     "name": "Family-Style Lunch",
+     "cat": "lunch",
+     "len": 40,
+     "hue": 52,
+     "target": null
+    },
+    {
+     "id": "b5",
+     "name": "Block 3",
+     "cat": "class",
+     "len": 70,
+     "hue": 32,
+     "target": null
+    },
+    {
+     "id": "b6",
+     "name": "Block 4",
+     "cat": "class",
+     "len": 70,
+     "hue": 340,
+     "target": null
+    },
+    {
+     "id": "b7",
+     "name": "Block 5",
+     "cat": "class",
+     "len": 70,
+     "hue": 268,
+     "target": null
+    },
+    {
+     "id": "b8",
+     "name": "Chapel and Advisory",
+     "cat": "advisory",
+     "len": 55,
+     "hue": 300,
+     "target": null
+    },
+    {
+     "id": "b9",
+     "name": "Block 6",
+     "cat": "class",
+     "len": 70,
+     "hue": 95,
+     "target": null
+    },
+    {
+     "id": "b10",
+     "name": "Block 7",
+     "cat": "class",
+     "len": 70,
+     "hue": 12,
+     "target": null
+    },
+    {
+     "id": "b11",
+     "name": "Buffet Lunch",
+     "cat": "lunch",
+     "len": 60,
+     "hue": 52,
+     "target": null
+    },
+    {
+     "id": "b12",
+     "name": "Speaker Block",
+     "cat": "other",
+     "len": 55,
+     "hue": 186,
+     "target": null
+    },
+    {
+     "id": "b13",
+     "name": "Advisory Lunch",
+     "cat": "lunch",
+     "len": 40,
+     "hue": 52,
+     "target": null
+    },
+    {
+     "id": "b14",
+     "name": "Chapel",
+     "cat": "other",
+     "len": 30,
+     "hue": 186,
+     "target": null
+    },
+    {
+     "id": "b15",
+     "name": "Buffet Lunch/Meetings",
+     "cat": "lunch",
+     "len": 65,
+     "hue": 52,
+     "target": null
+    },
+    {
+     "id": "b16",
+     "name": "Meetings",
+     "cat": "other",
+     "len": 40,
+     "hue": 186,
+     "target": null
+    }
+   ],
+   "days": [
+    {
+     "start": 480,
+     "items": []
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i1",
+       "t": "b",
+       "blockId": "b1",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i2",
+       "t": "b",
+       "blockId": "b2",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i3",
+       "t": "b",
+       "blockId": "b3",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i4",
+       "t": "b",
+       "blockId": "b4",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i5",
+       "t": "b",
+       "blockId": "b5",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i6",
+       "t": "b",
+       "blockId": "b6",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i7",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i8",
+       "t": "b",
+       "blockId": "b8",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i9",
+       "t": "b",
+       "blockId": "b9",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i10",
+       "t": "b",
+       "blockId": "b4",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i11",
+       "t": "b",
+       "blockId": "b10",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i12",
+       "t": "b",
+       "blockId": "b1",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i13",
+       "t": "b",
+       "blockId": "b3",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i14",
+       "t": "b",
+       "blockId": "b5",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i15",
+       "t": "b",
+       "blockId": "b6",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i16",
+       "t": "b",
+       "blockId": "b11",
+       "dur": null,
+       "gap": 0
+      }
+     ]
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i17",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i18",
+       "t": "b",
+       "blockId": "b12",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i19",
+       "t": "b",
+       "blockId": "b9",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i20",
+       "t": "b",
+       "blockId": "b13",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i21",
+       "t": "b",
+       "blockId": "b10",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i22",
+       "t": "b",
+       "blockId": "b1",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i23",
+       "t": "b",
+       "blockId": "b3",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i24",
+       "t": "b",
+       "blockId": "b14",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i25",
+       "t": "b",
+       "blockId": "b5",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i26",
+       "t": "b",
+       "blockId": "b15",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i27",
+       "t": "b",
+       "blockId": "b6",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i28",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i29",
+       "t": "b",
+       "blockId": "b9",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i30",
+       "t": "b",
+       "blockId": "b10",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i31",
+       "t": "b",
+       "blockId": "b16",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i32",
+       "t": "b",
+       "blockId": "b11",
+       "dur": 90,
+       "gap": 0
+      }
+     ]
+    },
+    {
+     "start": 480,
+     "items": []
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i33",
+       "t": "b",
+       "blockId": "b1",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i34",
+       "t": "b",
+       "blockId": "b2",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i35",
+       "t": "b",
+       "blockId": "b3",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i36",
+       "t": "b",
+       "blockId": "b4",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i37",
+       "t": "b",
+       "blockId": "b5",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i38",
+       "t": "b",
+       "blockId": "b6",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i39",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i40",
+       "t": "b",
+       "blockId": "b8",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i41",
+       "t": "b",
+       "blockId": "b9",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i42",
+       "t": "b",
+       "blockId": "b4",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i43",
+       "t": "b",
+       "blockId": "b10",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i44",
+       "t": "b",
+       "blockId": "b1",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i45",
+       "t": "b",
+       "blockId": "b3",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i46",
+       "t": "b",
+       "blockId": "b5",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i47",
+       "t": "b",
+       "blockId": "b6",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i48",
+       "t": "b",
+       "blockId": "b11",
+       "dur": null,
+       "gap": 0
+      }
+     ]
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i49",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i50",
+       "t": "b",
+       "blockId": "b12",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i51",
+       "t": "b",
+       "blockId": "b9",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i52",
+       "t": "b",
+       "blockId": "b13",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i53",
+       "t": "b",
+       "blockId": "b10",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i54",
+       "t": "b",
+       "blockId": "b1",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i55",
+       "t": "b",
+       "blockId": "b9",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i56",
+       "t": "b",
+       "blockId": "b14",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i57",
+       "t": "b",
+       "blockId": "b10",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i58",
+       "t": "b",
+       "blockId": "b15",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i59",
+       "t": "b",
+       "blockId": "b3",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i60",
+       "t": "b",
+       "blockId": "b5",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 500,
+     "items": [
+      {
+       "id": "i61",
+       "t": "b",
+       "blockId": "b6",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i62",
+       "t": "b",
+       "blockId": "b7",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i63",
+       "t": "b",
+       "blockId": "b16",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "i64",
+       "t": "b",
+       "blockId": "b11",
+       "dur": 90,
+       "gap": 0
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
