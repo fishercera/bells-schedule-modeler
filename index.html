@@ -546,10 +546,33 @@ function layoutSeq(m, items, t0, top) {
 }
 const R = () => ({ lo: 0, hi: 0 });
 const addTo = (map, k, lo, hi) => { const r = map[k] || (map[k] = R()); r.lo += lo; r.hi += hi; };
+/* One student group's day (v, from grpView). Without v, every block counts for everyone, as before groups existed.
+   open: the blocks the group attends (blocks for all students, and blocks tagged with the group or with a combined
+   group that has it). tagged: the open blocks that are tagged, so meant for this group in particular. anyTag: every
+   block tagged with any group. */
+function grpView(m, gid) {
+  const open = new Set(), tagged = new Set(), anyTag = new Set();
+  m.blocks.forEach(b => {
+    if (!b.groups.length) { open.add(b.id); return; }
+    anyTag.add(b.id);
+    if (b.groups.some(t => t === gid || grpById(m, t)?.members?.includes(gid))) { open.add(b.id); tagged.add(b.id); }
+  });
+  return { open, tagged, anyTag };
+}
+/* The lanes of a split a group's students can be in: the lanes holding a block tagged for them; failing that, the
+   lanes with a block they attend or with no tagged block at all; failing that, none, and the whole split is Free time
+   for them. With nothing tagged every lane qualifies, so the totals are the same as without groups. */
+function lanesFor(it, v) {
+  if (!v) return it.lanes;
+  const has = (l, set) => l.some(x => x.t === 'b' && set.has(x.blockId));
+  const mine = it.lanes.filter(l => has(l, v.tagged));
+  return mine.length ? mine : it.lanes.filter(l => has(l, v.open) || !has(l, v.anyTag));
+}
 /* acad is class time: every type that counts as class time, added up. It is worked out lane by lane like
-   passing time, so a split gives the lowest and highest a student can get, not a sum of each type's lowest. */
-function seqStats(m, items, top) {
-  const s = { blocks: bag(), cats: bag(), pass: R(), acad: R() };
+   passing time, so a split gives the lowest and highest a student can get, not a sum of each type's lowest.
+   free is time a group has no block because the block then is for other groups. Passing periods stay passing. */
+function seqStats(m, items, top, v = null) {
+  const s = { blocks: bag(), cats: bag(), pass: R(), acad: R(), free: R() };
   items.forEach((it, i) => {
     const g = gapOf(m, it, i, top);
     s.pass.lo += g; s.pass.hi += g;
@@ -557,12 +580,15 @@ function seqStats(m, items, top) {
       const b = blockOf(m, it.blockId);
       if (!b) return;
       const d = durOf(m, it);
+      if (v && !v.open.has(b.id)) { s.free.lo += d; s.free.hi += d; return; }
       addTo(s.blocks, b.id, d, d); addTo(s.cats, b.cat, d, d);
       if (isAcad(m, b)) { s.acad.lo += d; s.acad.hi += d; }
       return;
     }
+    const lanes = lanesFor(it, v);
+    if (!lanes.length) { const d = durOf(m, it); s.free.lo += d; s.free.hi += d; return; }
     // A split is simultaneous: a person is in one lane, so lanes never add together.
-    const L = it.lanes.map(l => seqStats(m, l, false));
+    const L = lanes.map(l => seqStats(m, l, false, v));
     const ids = new Set(L.flatMap(x => Object.keys(x.blocks)));
     ids.forEach(id => {
       const having = L.filter(x => x.blocks[id]);
@@ -576,20 +602,25 @@ function seqStats(m, items, top) {
     s.pass.hi += Math.max(...L.map(x => x.pass.hi));
     s.acad.lo += Math.min(...L.map(x => x.acad.lo));
     s.acad.hi += Math.max(...L.map(x => x.acad.hi));
+    s.free.lo += Math.min(...L.map(x => x.free.lo));
+    s.free.hi += Math.max(...L.map(x => x.free.hi));
   });
   return s;
 }
-const dayStats = (m, d) => seqStats(m, m.days[d].items, true);
-function totals(m) {
-  const part = () => ({ blocks: bag(), cats: bag(), pass: R(), acad: R() });
-  const t = { w: [part(), part()], all: part() };
+const dayStats = (m, d, v = null) => seqStats(m, m.days[d].items, true, v);
+// days: each day's class time, for the day headers.
+function totals(m, v = null) {
+  const part = () => ({ blocks: bag(), cats: bag(), pass: R(), acad: R(), free: R() });
+  const t = { w: [part(), part()], all: part(), days: [] };
   m.days.forEach((_, d) => {
-    const s = dayStats(m, d);
+    const s = dayStats(m, d, v);
+    t.days.push(s.acad);
     for (const tgt of [t.w[d < 7 ? 0 : 1], t.all]) {
       for (const k in s.blocks) addTo(tgt.blocks, k, s.blocks[k].lo, s.blocks[k].hi);
       for (const k in s.cats) addTo(tgt.cats, k, s.cats[k].lo, s.cats[k].hi);
       tgt.pass.lo += s.pass.lo; tgt.pass.hi += s.pass.hi;
       tgt.acad.lo += s.acad.lo; tgt.acad.hi += s.acad.hi;
+      tgt.free.lo += s.free.lo; tgt.free.hi += s.free.hi;
     }
   });
   return t;
@@ -602,12 +633,16 @@ function totals(m) {
    block's end and the next one's start is RUN_BREAK minutes or more (that includes waiting for the rest of a split to
    finish). Each placement counts as one block, and a run's length in minutes runs from its first start to its last end. */
 const RUN_BREAK = 30;
-function dayTransitions(m, items) {
-  const count = seq => seq.filter(x => x.t === 'b' && blockOf(m, x.blockId)).length;
+// For a group (v), only the blocks it attends count, so a skipped block isn't a transition.
+function dayTransitions(m, items, v = null) {
+  const counts = x => x.t === 'b' && !!blockOf(m, x.blockId) && (!v || v.open.has(x.blockId));
+  const count = seq => seq.filter(counts).length;
   let lo = 0, hi = 0;
   items.forEach(it => {
-    if (it.t === 'b') { if (blockOf(m, it.blockId)) { lo++; hi++; } return; }
-    const n = it.lanes.map(count); lo += Math.min(...n); hi += Math.max(...n);
+    if (it.t === 'b') { if (counts(it)) { lo++; hi++; } return; }
+    const lanes = lanesFor(it, v);
+    if (!lanes.length) return;
+    const n = lanes.map(count); lo += Math.min(...n); hi += Math.max(...n);
   });
   return { lo: Math.max(0, lo - 1), hi: Math.max(0, hi - 1) };
 }
@@ -617,8 +652,9 @@ const longer = (a, b) => a[0] !== b[0] ? (a[0] > b[0] ? a : b) : (a[1] >= b[1] ?
    state per distinct (blocks in the current run, when it started, when the last block ended), holding the longest
    run any path reaching that state has had (hi) and the shortest such longest run (lo). Two paths in the same state
    continue identically, so merging them is exact, and the number of states stays small. */
-function dayRuns(m, d) {
-  const day = m.days[d];
+// For a group (v), a block it skips leaves a gap, which ends a run once it reaches RUN_BREAK minutes.
+function dayRuns(m, d, v = null) {
+  const day = m.days[d], attends = b => !!b && (!v || v.open.has(b.id));
   let states = new Map();
   const put = (map, st) => {
     const k = `${st.c}|${st.c ? st.s : 0}|${st.e}`, old = map.get(k);
@@ -638,10 +674,12 @@ function dayRuns(m, d) {
     const next = new Map();
     if (it.t === 'b') {
       const b = blockOf(m, it.blockId);
-      states.forEach(st => put(next, b ? step(st, b, start, end) : copy(st)));
+      states.forEach(st => put(next, attends(b) ? step(st, b, start, end) : copy(st)));
     } else {
-      const lanes = it.lanes.map(l => layoutSeq(m, l, start, false).filter(x => x.it.t === 'b' && blockOf(m, x.it.blockId)));
-      states.forEach(st => lanes.forEach(L => put(next, L.reduce((acc, x) => step(acc, blockOf(m, x.it.blockId), x.start, x.end), copy(st)))));
+      const lanes = lanesFor(it, v).map(l => layoutSeq(m, l, start, false).filter(x => x.it.t === 'b' && attends(blockOf(m, x.it.blockId))));
+      // A group in none of the lanes keeps its state: the split is a gap for it.
+      if (!lanes.length) states.forEach(st => put(next, copy(st)));
+      else states.forEach(st => lanes.forEach(L => put(next, L.reduce((acc, x) => step(acc, blockOf(m, x.it.blockId), x.start, x.end), copy(st)))));
     }
     states = next;
   });
@@ -650,16 +688,57 @@ function dayRuns(m, d) {
 }
 /* Transitions per week and over two weeks, and the longest run over two weeks (the worst any student has).
    partial: on every day with a run that long, only some lanes have it. */
-function flowTotals(m) {
+function flowTotals(m, v = null) {
   const trans = { w: [R(), R()], all: R() };
   const runs = m.days.map((day, d) => {
-    const t = dayTransitions(m, day.items);
+    const t = dayTransitions(m, day.items, v);
     for (const tgt of [trans.w[d < 7 ? 0 : 1], trans.all]) { tgt.lo += t.lo; tgt.hi += t.hi; }
-    return dayRuns(m, d);
+    return dayRuns(m, d, v);
   });
   const worst = runs.reduce((a, r) => longer(a, r.hi), [0, 0]);
   const partial = worst[0] > 0 && !runs.some(r => r.hi[0] === worst[0] && r.lo === worst[0]);
   return { trans, run: { n: worst[0], span: worst[1], partial } };
+}
+/* ---------- Totals for each student group ----------
+   A plain group's totals follow its own day (grpView). A combined group shows the lowest to highest of its members,
+   and All students the lowest to highest of the groups that are grades. With no grades, All students is the whole
+   calendar as if every block were for everyone. part: blocks only some members attend; such a block's total counts
+   the members who attend it, as a block in only some lanes of a split counts the students in those lanes.
+   Worked out once per change of the model. */
+const grpCache = new WeakMap();
+function grpResults(m) {
+  const key = JSON.stringify(m), hit = grpCache.get(m);
+  if (hit && hit.key === key) return hit.res;
+  const one = v => ({ t: totals(m, v), f: flowTotals(m, v), part: new Set() });
+  const byId = new Map();
+  m.groups.forEach(g => { if (!isCombo(g)) byId.set(g.id, one(grpView(m, g.id))); });
+  m.groups.forEach(g => { if (isCombo(g)) byId.set(g.id, g.members.length ? mergeRes(g.members.map(id => byId.get(id))) : null); });
+  const grades = m.groups.filter(g => !isCombo(g) && g.grade);
+  const res = { all: grades.length ? mergeRes(grades.map(g => byId.get(g.id))) : one(null), byId };
+  grpCache.set(m, { key, res });
+  return res;
+}
+function mergeRes(list) {
+  if (list.length === 1) return list[0];
+  const lohi = rs => ({ lo: Math.min(...rs.map(r => r.lo)), hi: Math.max(...rs.map(r => r.hi)) });
+  // A type a member never has counts as 0 for it; a block counts only the members who have it.
+  const mergePart = ps => {
+    const out = { blocks: bag(), cats: bag(), pass: lohi(ps.map(p => p.pass)), acad: lohi(ps.map(p => p.acad)), free: lohi(ps.map(p => p.free)) };
+    new Set(ps.flatMap(p => Object.keys(p.blocks))).forEach(id => { out.blocks[id] = lohi(ps.filter(p => p.blocks[id]).map(p => p.blocks[id])); });
+    new Set(ps.flatMap(p => Object.keys(p.cats))).forEach(c => { out.cats[c] = lohi(ps.map(p => p.cats[c] ?? R())); });
+    return out;
+  };
+  const ts = list.map(x => x.t), fs = list.map(x => x.f);
+  const t = { w: [0, 1].map(w => mergePart(ts.map(x => x.w[w]))), all: mergePart(ts.map(x => x.all)), days: ts[0].days.map((_, d) => lohi(ts.map(x => x.days[d]))) };
+  // The longest run is the longest any member has. It's partial unless every member has it on some day in every lane.
+  const worst = fs.reduce((a, x) => longer(a, [x.run.n, x.run.span]), [0, 0]);
+  const f = {
+    trans: { w: [0, 1].map(w => lohi(fs.map(x => x.trans.w[w]))), all: lohi(fs.map(x => x.trans.all)) },
+    run: { n: worst[0], span: worst[1], partial: worst[0] > 0 && !fs.every(x => x.run.n === worst[0] && !x.run.partial) },
+  };
+  const part = new Set(list.flatMap(x => [...x.part]));
+  Object.keys(t.all.blocks).forEach(id => { if (!ts.every(x => x.all.blocks[id])) part.add(id); });
+  return { t, f, part };
 }
 /* Targets are judged on the lowest possible total. For a type (all class time) a lane without that type
    counts as 0, so a split can't hide a shortfall there. For a single block, only the lanes that contain it
@@ -680,7 +759,7 @@ function someLaneBlocks(m) {
   }));
   return out;
 }
-function shortfalls(m, t = totals(m)) {
+function shortfalls(m, t = grpResults(m).all.t) {
   const out = [];
   const c = targetState(m.classTarget, t.all.acad);
   if (c && !c.met) out.push('Class time');
@@ -785,7 +864,8 @@ const fmtSpan = v => v >= 60 ? `${Math.floor(v / 60)}h${v % 60 ? ` ${v % 60}m` :
 const runText = r => r.n ? `${r.n} block${r.n > 1 ? 's' : ''} (${fmtSpan(r.span)})` : 'None';
 const TRANS_HELP = 'Each move from one block to the next, including 0-minute passing. Arriving and leaving for the day don\'t count.';
 const RUN_HELP = `The most class-time blocks in a row that any student has. A run ends at a block that isn't class time, or at a gap of ${RUN_BREAK} minutes or more.`;
-const RUN_PARTIAL = 'Only students in some lanes of a split have a run this long.';
+const RUN_PARTIAL = 'Only some students have a run this long: those in some lanes of a split, or in some groups.';
+const FREE_HELP = 'Time when a student has no block because the block then is for other groups. It isn\'t passing time.';
 const unitLabel = () => S.unit === 'hrs' ? 'h:mm' : 'min';
 
 /* ---------- Rendering ---------- */
@@ -922,7 +1002,7 @@ function renderCenter() {
   c.querySelectorAll('.gridscroll').forEach((e, i) => { e.scrollLeft = scrolls[i] || 0; });
 }
 function renderGrid(c) {
-  const m = M(), { lo, hi } = gridRange(m), t = totals(m);
+  const m = M(), { lo, hi } = gridRange(m), t = grpResults(m).all.t;
   c.innerHTML = [0, 1].map(w => weekHTML(m, w, lo, hi, t)).join('');
 }
 function weekHTML(m, w, lo, hi, t) {
@@ -932,12 +1012,12 @@ function weekHTML(m, w, lo, hi, t) {
   const hours = []; for (let h = lo; h <= hi; h += 60) if (h < hi) hours.push(`<span style="top:${(h - lo) * k}px">${h === lo ? '' : ''}${clock(h).replace(':00', '')}${h < 720 ? 'a' : 'p'}</span>`);
   const lines = `background-image:linear-gradient(to bottom,var(--rule) 1px,transparent 1px),linear-gradient(to bottom,transparent ${hourPx / 2 - .5}px,var(--sunk) ${hourPx / 2 - .5}px,var(--sunk) ${hourPx / 2 + .5}px,transparent ${hourPx / 2 + .5}px);background-size:100% ${hourPx}px;`;
   const heads = ds.map(d => {
-    const s = dayStats(m, d), has = m.days[d].items.length;
+    const has = m.days[d].items.length;
     const L = has ? layoutSeq(m, m.days[d].items, m.days[d].start, true) : [];
     const on = S.sel?.kind === 'day' && S.sel.d === d;
     return `<button class="dayhd${on ? ' on' : ''}" data-act="selDay" data-d="${d}" title="${dayName(d)}: day settings">
       <span class="d">${DAYS[d % 7]}</span>
-      <span class="m">${has ? `${fmtR(s.acad)} class` : 'No school'}</span>
+      <span class="m">${has ? `${fmtR(t.days[d])} class` : 'No school'}</span>
       ${has ? `<span class="m">${clock(m.days[d].start)}–${clock(L[L.length - 1].end)}</span>` : '<span class="m">&nbsp;</span>'}</button>`;
   }).join('');
   const colsHTML = ds.map(d => `<div class="daycol${S.sel?.kind === 'day' && S.sel.d === d ? ' on' : ''}" data-col="${d}" style="height:${H}px;${lines}">
@@ -988,18 +1068,21 @@ function renderRight() {
   if (S.view !== 'schedule') return;
   $('#right').classList.toggle('folded', S.fold.right);
   if (S.fold.right) {
-    $('#right').innerHTML = `<div class="colbar">${colBtn('right')}</div><div class="vlabel" aria-hidden="true">Class time ${fmtR(totals(M()).all.acad)} ${unitLabel()}</div>`;
+    $('#right').innerHTML = `<div class="colbar">${colBtn('right')}</div><div class="vlabel" aria-hidden="true">Class time ${fmtR(grpResults(M()).all.t.all.acad)} ${unitLabel()}</div>`;
     return;
   }
   $('#right').innerHTML = `<div class="colbar">${colBtn('right')}</div>${inspectorHTML()}${ledgerHTML()}`;
 }
 function ledgerHTML() {
-  const m = M(), t = totals(m), short = shortfalls(m, t), cls = targetState(m.classTarget, t.all.acad), partial = someLaneBlocks(m), F = flowTotals(m);
+  const m = M(), G = grpResults(m), t = G.all.t, F = G.all.f, short = shortfalls(m, t), cls = targetState(m.classTarget, t.all.acad);
+  const lanePart = someLaneBlocks(m), partial = new Set([...lanePart, ...G.all.part]);
+  const tagged = m.blocks.some(b => b.groups.length), grades = m.groups.filter(g => !isCombo(g) && g.grade);
   const row = (label, a, b, c) => `<td class="n">${fmtR(a)}</td><td class="n">${fmtR(b)}</td><td class="n">${fmtR(c)}</td>`;
-  const mark = '<span class="lanemark" title="In only some lanes of a split. This total counts the students in the lanes that have it." aria-label="in only some lanes">◐</span>';
+  const markText = G.all.part.size ? 'In only some lanes of a split, or for only some groups. This total counts the students who have it.' : 'In only some lanes of a split. This total counts the students in the lanes that have it.';
+  const mark = `<span class="lanemark" title="${markText}" aria-label="only some students">◐</span>`;
   const blockRows = blocks => blocks.map(b => {
     const tg = targetState(b.target, t.all.blocks[b.id]);
-    return `<tr class="${tg ? '' : 'line'}"><td><span data-tipblock="${esc(b.id)}"><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>${partial.has(b.id) ? ` ${mark}` : ''}</td>${row(b.name, t.w[0].blocks[b.id], t.w[1].blocks[b.id], t.all.blocks[b.id])}</tr>
+    return `<tr class="${tg ? '' : 'line'}"><td><span data-tipblock="${esc(b.id)}"><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}${gmark(m, b)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>${partial.has(b.id) ? ` ${mark}` : ''}</td>${row(b.name, t.w[0].blocks[b.id], t.w[1].blocks[b.id], t.all.blocks[b.id])}</tr>
       ${tg ? `<tr class="line"><td colspan="4">${meterHTML(tg)}</td></tr>` : ''}`;
   }).join('');
   const units = `<div class="tabs" style="font-size:12px"><button data-act="unit" data-u="min" aria-selected="${S.unit === 'min'}" style="padding:1px 8px">min</button><button data-act="unit" data-u="hrs" aria-selected="${S.unit === 'hrs'}" style="padding:1px 8px">h:mm</button></div>`;
@@ -1009,6 +1092,7 @@ function ledgerHTML() {
       <div class="stat"><span class="k">Week 2</span>${tileR(t.w[1].acad)}</div>
       <div class="stat main"><span class="k">Two-week total</span>${tileR(t.all.acad)}</div>
     </div>
+    ${tagged && grades.length ? `<p class="hint">For all students: the lowest to highest of ${esc(grades.map(g => g.name).join(', '))}.</p>` : ''}
     ${cls ? meterHTML(cls) : ''}
     ${short.length ? `<div><span class="pill short">${short.length} target${short.length > 1 ? 's' : ''} short</span> <span class="hint">${esc(short.join(', '))}</span></div>` : ''}
     <table class="ledger"><thead><tr><th>Block</th><th>Wk 1</th><th>Wk 2</th><th>2-wk</th></tr></thead><tbody>
@@ -1016,16 +1100,17 @@ function ledgerHTML() {
       ${g.blocks.length > 1 ? `<tr class="sub line"><td>All ${esc(g.name.toLowerCase())}</td>${row('', t.w[0].cats[g.id], t.w[1].cats[g.id], t.all.cats[g.id])}</tr>` : ''}`).join('')}
     <tr class="cat"><td colspan="4">Passing and day shape</td></tr>
     <tr class="line"><td>Passing time</td>${row('', t.w[0].pass, t.w[1].pass, t.all.pass)}</tr>
+    ${t.all.free.hi ? `<tr class="line"><td><span class="help" title="${esc(FREE_HELP)}">Free time</span></td>${row('', t.w[0].free, t.w[1].free, t.all.free)}</tr>` : ''}
     <tr class="line"><td><span class="help" title="${esc(TRANS_HELP)}">Transitions</span></td><td class="n">${fmtCount(F.trans.w[0])}</td><td class="n">${fmtCount(F.trans.w[1])}</td><td class="n">${fmtCount(F.trans.all)}</td></tr>
     <tr class="line"><td><span class="help" title="${esc(RUN_HELP)}">Longest run of class blocks</span></td><td class="n" colspan="3">${runText(F.run)}${F.run.partial ? ` <span class="lanemark" title="${esc(RUN_PARTIAL)}" aria-label="only some lanes">◐</span>` : ''}</td></tr>
     </tbody></table>
-    ${JSON.stringify(t.all).includes('"lo"') && hasRange(t) ? '<p class="hint">A range means the total depends on which lane someone is in. Targets use the lower number.</p>' : ''}
-    ${partial.size ? `<p class="hint">${mark} In only some lanes of a split. That block's total and target count only the students in the lanes that have it, so it can't be added to the other blocks to get the type total.</p>` : ''}
+    ${hasRange(t) ? `<p class="hint">A range means the total depends on which lane${tagged ? ' or group' : ''} a student is in. Targets use the lower number.</p>` : ''}
+    ${partial.size ? `<p class="hint">${mark} ${G.all.part.size ? 'In only some lanes of a split, or for only some groups. That block\'s total and target count only the students who have it' : 'In only some lanes of a split. That block\'s total and target count only the students in the lanes that have it'}, so it can't be added to the other blocks to get the type total.</p>` : ''}
   `, '', ' id="ledger"');
 }
 // A range is too wide for the small week boxes, so it may wrap after the dash instead of being cut off.
 const tileR = r => { const s = fmtR(r); return s.includes('–') ? `<span class="v rng">${s.replace('–', '–<wbr>')}</span>` : `<span class="v">${s}</span>`; };
-const hasRange = t => [...Object.values(t.all.blocks), ...Object.values(t.all.cats), t.all.pass, t.all.acad].some(r => r.lo !== r.hi);
+const hasRange = t => [...Object.values(t.all.blocks), ...Object.values(t.all.cats), t.all.pass, t.all.acad, t.all.free].some(r => r.lo !== r.hi);
 function meterHTML(s) {
   return `<div><div class="tgt"><span>Target ${fmt(s.target)} over two weeks</span>
     <span class="pill ${s.met ? 'met' : 'short'}">${s.met ? 'Met' : `${fmt(s.short)} short`}</span></div>
@@ -1176,7 +1261,7 @@ function splitInspector(m, f) {
       <button class="btn sm danger" data-act="delItem">Remove split</button></div>`);
 }
 function renderLengths(c) {
-  const m = M(), t = totals(m), days = [...Array(14).keys()];
+  const m = M(), t = grpResults(m).all.t, days = [...Array(14).keys()];
   const cell = (b, d) => {
     const ps = placements(m, b.id, d), ds = [...new Set(ps.map(p => durOf(m, p.it)))];
     if (ds.length > 1) return `<span class="fixed" title="This block has different lengths in this day. Edit them on the Schedule tab.">${Math.min(...ds)}–${Math.max(...ds)}</span>`;
@@ -1215,7 +1300,7 @@ function renderCompare(c) {
   const pick = `<div class="pickrow"><strong>Compare:</strong>${S.models.map(m => `<label><input type="checkbox" id="cmp-${esc(m.id)}" data-f="cmp" data-m="${esc(m.id)}"${S.compare.includes(m.id) ? ' checked' : ''}>${esc(m.name)}</label>`).join('')}
     <div class="tabs" style="margin-left:auto;font-size:12px"><button data-act="unit" data-u="min" aria-selected="${S.unit === 'min'}" style="padding:1px 8px">min</button><button data-act="unit" data-u="hrs" aria-selected="${S.unit === 'hrs'}" style="padding:1px 8px">h:mm</button></div></div>`;
   if (!ms.length) { c.innerHTML = `<div class="cmp">${pick}<p class="note">Select at least one model to see its totals.</p></div>`; return; }
-  const T = ms.map(m => totals(m)), F = ms.map(m => flowTotals(m));
+  const T = ms.map(m => grpResults(m).all.t), F = ms.map(m => grpResults(m).all.f);
   const runDelta = (r, base, i) => {
     if (i === 0 || ms.length < 2) return '';
     const dn = r.n - base.n, ds = r.span - base.span;
@@ -1990,12 +2075,12 @@ function scheduleCSV(m) {
   return csv(rows);
 }
 function totalsCSV(m) {
-  const t = totals(m), rows = [['Item', 'Type', 'For', 'Week 1 min', 'Week 2 min', 'Two-week min', 'Two-week target', 'Status', 'Block note', 'Type note']];
+  const G = grpResults(m), t = G.all.t, F = G.all.f, rows = [['Item', 'Type', 'For', 'Week 1 min', 'Week 2 min', 'Two-week min', 'Two-week target', 'Status', 'Block note', 'Type note']];
   const st = s => !s ? '' : s.met ? 'Met' : `${s.short} short`;
   rows.push(['All class time', 'Class time', '', plainR(t.w[0].acad), plainR(t.w[1].acad), plainR(t.all.acad), m.classTarget ?? '', st(targetState(m.classTarget, t.all.acad))]);
   sortedBlocks(m).forEach(b => rows.push([b.name, typeName(m, b.cat), forText(m, b), plainR(t.w[0].blocks[b.id]), plainR(t.w[1].blocks[b.id]), plainR(t.all.blocks[b.id]), b.target ?? '', st(targetState(b.target, t.all.blocks[b.id])), b.note, typeOf(m, b.cat).note]));
   rows.push(['Passing', 'Passing', '', plainR(t.w[0].pass), plainR(t.w[1].pass), plainR(t.all.pass), '', '']);
-  const F = flowTotals(m);
+  if (t.all.free.hi) rows.push(['Free time', 'Free', '', plainR(t.w[0].free), plainR(t.w[1].free), plainR(t.all.free), '', '']);
   rows.push(['Transitions (count, not minutes)', 'Transitions', '', plainR(F.trans.w[0]), plainR(F.trans.w[1]), plainR(F.trans.all), '', '']);
   rows.push(['Longest run of class blocks', 'Run', '', '', '', F.run.n ? `${F.run.n} blocks, ${F.run.span} min${F.run.partial ? ' (some lanes only)' : ''}` : 'None', '', '']);
   return csv(rows);
