@@ -371,6 +371,7 @@ textarea.note-in { min-height: 58px; resize: vertical; font: 13px/1.4 var(--f-bo
     <button class="btn" data-act="redo" id="redoBtn" title="Redo (Ctrl+Y)">Redo</button>
     <button class="btn" data-act="exportDlg">Export</button>
     <button class="btn" data-act="importDlg">Import</button>
+    <button class="btn" data-act="pdf" id="pdfBtn" hidden title="Save Week 1 and Week 2 of this model as a PDF">PDF</button>
     <button class="btn" data-act="print" id="printBtn" hidden>Print</button>
   </div>
 </header>
@@ -1008,6 +1009,7 @@ function renderTop() {
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.v === S.view));
   $('#undoBtn').disabled = !undoStack.length; $('#redoBtn').disabled = !redoStack.length;
   $('#printBtn').hidden = !IS_LOCAL;
+  $('#pdfBtn').hidden = !canSave();
   $('#frame').classList.toggle('wide', S.view !== 'schedule');
   $('#frame').classList.toggle('foldL', S.view === 'schedule' && S.fold.left);
   $('#frame').classList.toggle('foldR', S.view === 'schedule' && S.fold.right);
@@ -1680,6 +1682,7 @@ const actions = {
   undo() { restore(undoStack, redoStack); },
   redo() { restore(redoStack, undoStack); },
   print() { window.print(); },
+  pdf() { savePDF(); },
   deselect() { S.sel = null; render(); },
   foldCol(el) { const side = el.dataset.side; S.fold[side] = !S.fold[side]; if (side === 'right') rightAuto = false; persist(); render(); },
   foldPanel(el) { const p = el.dataset.p; if (PANELS.includes(p)) { S.fold.panels[p] = !S.fold.panels[p]; persist(); renderKeepFocus(); } },
@@ -2304,8 +2307,9 @@ if (typeof window.claude?.use === 'function') {
   window.claude.use('downloads').then(d => { downloadsApi = d || null; }, () => {}).then(() => { if (downloadsApi) render(); });
 }
 const canSave = () => !!downloadsApi || IS_LOCAL;
-// A file name made from a model's name: "H'kiss Block Waterfall" -> "h-kiss-block-waterfall".
-const fileBase = m => m.name.replace(/[^\w-]+/g, '-').toLowerCase();
+// A file name made from a model's name: "H'kiss Block Waterfall" -> "h-kiss-block-waterfall". Accented letters keep
+// their letter ("Ü" -> "u").
+const fileBase = m => m.name.normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]+/g, '-').toLowerCase();
 // Resolves true once the file is saved (or handed to the browser), false if it wasn't.
 async function saveFile(filename, data, type) {
   if (downloadsApi) {
@@ -2322,6 +2326,151 @@ async function saveFile(filename, data, type) {
   a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type }));
   a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   return true;
+}
+/* ---------- Schedule PDF ----------
+   Week 1 and Week 2, one US Letter landscape page each, laid out like the Schedule tab and drawn as boxes and text
+   (so it stays sharp and small). The PDF library loads from cdnjs the first time someone asks for a PDF. Its
+   built-in font covers Western European text; other characters print as "?". */
+const JSPDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+let jsPDFLoading = null, pdfBusy = false;
+function loadJsPDF() {
+  if (window.jspdf?.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+  if (!jsPDFLoading) jsPDFLoading = new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = JSPDF_URL; s.async = true; s.crossOrigin = 'anonymous';
+    s.onload = () => window.jspdf?.jsPDF ? ok(window.jspdf.jsPDF) : fail(new Error('jsPDF missing'));
+    s.onerror = () => { jsPDFLoading = null; s.remove(); fail(new Error('jsPDF failed to load')); };
+    document.head.appendChild(s);
+  });
+  return jsPDFLoading;
+}
+const PDF_WINANSI = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
+const pdfText = s => String(s).replace(/[^\x20-\x7E\xA0-\xFF]/gu, c => PDF_WINANSI.includes(c) ? c : '?');
+function hslRgb(h, s, l) {
+  s /= 100; l /= 100;
+  const a = s * Math.min(l, 1 - l), f = n => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  return [f(0), f(8), f(4)].map(x => Math.round(x * 255));
+}
+async function buildPDF(m) {
+  const JsPDF = await loadJsPDF();
+  const doc = new JsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter', compress: true });
+  doc.setProperties({ title: `${m.name} schedule`, creator: 'Bell Schedule Modeler' });
+  const { lo, hi } = pdfRange(m), t = grpResults(m).all.t;
+  const made = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  [0, 1].forEach(w => { if (w) doc.addPage(); pdfWeek(doc, m, w, lo, hi, t, made); });
+  return doc.output('blob');
+}
+// The hours both weeks' days span, to whole hours. Unlike the screen there's no minimum, so the day fills the page.
+function pdfRange(m) {
+  let lo = Infinity, hi = -Infinity;
+  m.days.forEach(d => { if (!d.items.length) return; const L = layoutSeq(m, d.items, d.start, true); lo = Math.min(lo, d.start); hi = Math.max(hi, L[L.length - 1].end); });
+  if (lo === Infinity) return { lo: 480, hi: 900 };
+  lo = Math.floor(lo / 60) * 60;
+  return { lo, hi: Math.max(Math.ceil(hi / 60) * 60, lo + 60) };
+}
+// Paper colors: the app's light theme.
+const PC = { ink: [21, 48, 42], muted: [84, 112, 106], rule: [210, 223, 217], strong: [179, 198, 190], sunk: [245, 248, 246] };
+function pdfWeek(doc, m, w, lo, hi, t, made) {
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), mg = 36, axis = 24;
+  const set = (font, size, color) => { doc.setFont('helvetica', font); doc.setFontSize(size); doc.setTextColor(...color); };
+  const fit = (s, width) => { s = pdfText(s); if (doc.getTextWidth(s) <= width) return s; while (s.length > 1 && doc.getTextWidth(s + '…') > width) s = s.slice(0, -1); return s.length > 1 ? s.trimEnd() + '…' : ''; };
+  // Header: model name, then the week and its totals.
+  set('bold', 14, PC.ink); doc.text(fit(m.name, W - 2 * mg), mg, mg, { baseline: 'top' });
+  const wk = t.w[w];
+  set('bold', 10.5, PC.ink); doc.text(`Week ${w + 1}`, mg, mg + 20, { baseline: 'top' });
+  const wkW = doc.getTextWidth(`Week ${w + 1}`);
+  set('normal', 9.5, PC.muted);
+  doc.text(pdfText(`Class time ${fmtR(wk.acad)} ${unitLabel()}   ·   Passing ${fmtR(wk.pass)}${wk.free.hi ? `   ·   Free time ${fmtR(wk.free)}` : ''}`), mg + wkW + 14, mg + 21, { baseline: 'top' });
+  // Grid: day headers, hour lines and day columns, scaled so the school day fills the page.
+  const headTop = mg + 40, dayHead = 30, top = headTop + dayHead, bottom = H - mg - 14, left = mg + axis, right = W - mg;
+  const k = (bottom - top) / (hi - lo), Y = v => top + (v - lo) * k;
+  const ds = [0, 1, 2, 3, 4, 5, 6].map(i => w * 7 + i);
+  const weights = ds.map((d, i) => (!m.days[d].items.length && (i === 0 || i === 6)) ? 0.5 : 1), total = weights.reduce((a, b) => a + b, 0);
+  const xs = [left]; weights.forEach(v => xs.push(xs[xs.length - 1] + (right - left) * v / total));
+  doc.setDrawColor(...PC.rule); doc.setLineWidth(0.5);
+  for (let h = lo; h <= hi; h += 60) {
+    doc.line(left, Y(h), right, Y(h));
+    if (h < hi) { set('normal', 7, PC.muted); doc.text(`${clock(h).replace(':00', '')}${h < 720 ? 'a' : 'p'}`, left - 4, Y(h) + (h === lo ? 1 : 0), { baseline: h === lo ? 'top' : 'middle', align: 'right' }); }
+  }
+  ds.forEach((d, i) => {
+    const x = xs[i], cw = xs[i + 1] - x, day = m.days[d], has = day.items.length;
+    doc.setFillColor(...PC.sunk); doc.setDrawColor(...PC.strong); doc.rect(x, headTop, cw, dayHead, 'FD');
+    set('bold', 8.5, PC.ink); doc.text(DAYS[d % 7], x + 4, headTop + 4, { baseline: 'top' });
+    set('normal', 6.5, PC.muted);
+    if (has) {
+      const L = layoutSeq(m, day.items, day.start, true);
+      doc.text(fit(`${fmtR(t.days[d])} class`, cw - 8), x + 4, headTop + 13, { baseline: 'top' });
+      doc.text(fit(`${clock(day.start)}–${clock(L[L.length - 1].end)}`, cw - 8), x + 4, headTop + 19.5, { baseline: 'top' });
+    } else doc.text(fit('No school', cw - 8), x + 4, headTop + 13, { baseline: 'top' });
+    doc.setDrawColor(...PC.rule); doc.line(x, top, x, bottom);
+    if (has) pdfSeq(doc, m, day.items, day.start, x, cw, true, Y, fit, set);
+  });
+  doc.setDrawColor(...PC.rule); doc.line(right, top, right, bottom); doc.line(left, bottom, right, bottom);
+  // Footer
+  set('normal', 7.5, PC.muted);
+  doc.text(pdfText(`Bell Schedule Modeler · ${made}`), mg, H - mg + 4, { baseline: 'top' });
+  doc.text(`Page ${w + 1} of 2`, W - mg, H - mg + 4, { baseline: 'top', align: 'right' });
+}
+// A day, or one lane of a split, from start time t0 in a column at x of width cw.
+function pdfSeq(doc, m, items, t0, x, cw, top, Y, fit, set) {
+  layoutSeq(m, items, t0, top).forEach(({ it, start, end }) => {
+    const y = Y(start), h = Y(end) - y;
+    if (it.t === 's') {
+      const sx = x + 1.5, sw = cw - 3, lw = sw / it.lanes.length;
+      doc.setFillColor(...PC.sunk); doc.setDrawColor(...PC.strong); doc.setLineWidth(0.7); doc.roundedRect(sx, y, sw, h, 2, 2, 'FD');
+      it.lanes.forEach((lane, li) => {
+        const lx = sx + li * lw;
+        if (li) { doc.setLineDashPattern([1.5, 1.5], 0); doc.setLineWidth(0.4); doc.line(lx, y, lx, y + h); doc.setLineDashPattern([], 0); }
+        pdfSeq(doc, m, lane, start, lx, lw, false, Y, fit, set);
+      });
+      return;
+    }
+    const b = blockOf(m, it.blockId);
+    if (b) pdfBlock(doc, m, b, start, end, top ? x + 2 : x + 1, y, top ? cw - 4 : cw - 2, h, fit, set);
+  });
+}
+function pdfBlock(doc, m, b, start, end, x, y, w, h, fit, set) {
+  const edge = hslRgb(b.hue, 45, 40), ink = hslRgb(b.hue, 40, 17);
+  doc.setFillColor(...hslRgb(b.hue, 68, 86)); doc.setDrawColor(...edge); doc.setLineWidth(0.6);
+  // A block that isn't class time has a dashed edge, as on screen.
+  if (!isAcad(m, b)) doc.setLineDashPattern([2, 1.5], 0);
+  doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD');
+  doc.setLineDashPattern([], 0);
+  // A block for only some groups gets the corner tab.
+  if (b.groups.length) { doc.setFillColor(...edge); doc.triangle(x + w - 6, y, x + w, y, x + w, y + 6, 'F'); }
+  if (h < 8) return;
+  const pad = 2.5, room = w - 2 * pad - (b.groups.length ? 4 : 0), small = w < 46;
+  // Line 1: the name, with the group and "1/wk" labels after it when there's room. The name comes first.
+  const label = [...b.groups.map(id => grpById(m, id)).filter(Boolean).map(g => grpShort(g.name)), ...(b.limit ? [`${b.limit.n}/${b.limit.per === 'week' ? 'wk' : '2wk'}`] : [])].join(' · ');
+  set('normal', 5.8, ink); const lw = label ? doc.getTextWidth(pdfText(label)) + 3 : 0;
+  set('bold', small ? 6.3 : 7, ink);
+  const nameW = doc.getTextWidth(pdfText(b.name)), withLabel = label && room - lw >= Math.min(nameW, doc.getTextWidth('Abc…'));
+  const name = fit(b.name, withLabel ? room - lw : room);
+  doc.text(name, x + pad, y + 2, { baseline: 'top' });
+  if (withLabel) { const nx = x + pad + doc.getTextWidth(name) + 3; set('normal', 5.8, ink); doc.text(fit(label, x + pad + room - nx), nx, y + 2.6, { baseline: 'top' }); }
+  // Line 2: the times; line 3: the minutes, when the block is tall enough.
+  set('normal', small ? 5.6 : 6.2, ink);
+  const mins = end - start, times = `${clock(start)}–${clock(end)}`;
+  if (h >= 17) {
+    const both = `${times} · ${mins}m`;
+    if (h < 25 && doc.getTextWidth(both) <= w - 2 * pad) { doc.text(both, x + pad, y + 10, { baseline: 'top' }); return; }
+    // In a narrow lane the whole range doesn't fit, so only the start time is shown.
+    doc.text(doc.getTextWidth(times) <= w - 2 * pad ? times : fit(clock(start), w - 2 * pad), x + pad, y + 10, { baseline: 'top' });
+    if (h >= 25) doc.text(fit(`${mins}m`, w - 2 * pad), x + pad, y + 17, { baseline: 'top' });
+  }
+}
+async function savePDF() {
+  if (pdfBusy) return;
+  pdfBusy = true; $('#pdfBtn').disabled = true;
+  const m = M(), slow = setTimeout(() => toast('Making the PDF…'), 400);
+  try {
+    const blob = await buildPDF(m);
+    clearTimeout(slow);
+    await saveFile(`${fileBase(m)}-schedule.pdf`, blob, 'application/pdf');
+  } catch (e) {
+    clearTimeout(slow);
+    toast('The PDF couldn\'t be made. Check your internet connection (the PDF maker loads from the web) and try again.');
+  } finally { pdfBusy = false; $('#pdfBtn').disabled = false; }
 }
 function exportDlg(pre) {
   const m = M();
