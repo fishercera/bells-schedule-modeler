@@ -1,14 +1,50 @@
 {
  "app": "bell-schedule-modeler",
- "version": 1,
+ "version": 2,
  "models": [
   {
    "id": "x6jskq2va",
    "name": "H'kiss Block Waterfall (Morning Flex)",
    "passing": 5,
    "defaultStart": 480,
-   "blockLen": 90,
    "classTarget": null,
+   "types": [
+    {
+     "id": "class",
+     "name": "Class",
+     "len": 90,
+     "academic": true,
+     "note": ""
+    },
+    {
+     "id": "advisory",
+     "name": "Advisory",
+     "len": 45,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "lunch",
+     "name": "Lunch",
+     "len": 50,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "break",
+     "name": "Break",
+     "len": 10,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "other",
+     "name": "Other",
+     "len": 45,
+     "academic": false,
+     "note": ""
+    }
+   ],
    "blocks": [
     {
      "id": "x39kawkxz",
@@ -16,7 +52,8 @@
      "cat": "class",
      "len": 70,
      "hue": 212,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "xt7m8uxk1",
@@ -24,7 +61,8 @@
      "cat": "other",
      "len": 45,
      "hue": 186,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "x1mvgzq25",
@@ -32,7 +70,8 @@
      "cat": "class",
      "len": 70,
      "hue": 158,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "xnobogdec",
@@ -40,15 +79,17 @@
      "cat": "class",
      "len": 70,
      "hue": 32,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "xpne1shdk",
-     "name": "Flex Time",
-     "cat": "other",
+     "name": "Flex",
+     "cat": "class",
      "len": 45,
      "hue": 186,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "x411fkpjg",
@@ -56,7 +97,8 @@
      "cat": "class",
      "len": 70,
      "hue": 340,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "xmzlgbk3k",
@@ -64,7 +106,8 @@
      "cat": "other",
      "len": 45,
      "hue": 186,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "xdh374o3r",
@@ -72,7 +115,8 @@
      "cat": "class",
      "len": 70,
      "hue": 268,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "xq02puy56",
@@ -80,7 +124,8 @@
      "cat": "lunch",
      "len": 50,
      "hue": 52,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "xjbvu5oum",
@@ -88,7 +133,8 @@
      "cat": "class",
      "len": 70,
      "hue": 95,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "xp7taqjdf",
@@ -96,7 +142,8 @@
      "cat": "other",
      "len": 40,
      "hue": 186,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "xk7128i5s",
@@ -104,7 +151,8 @@
      "cat": "other",
      "len": 45,
      "hue": 186,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "xby5foal1",
@@ -112,7 +160,8 @@
      "cat": "advisory",
      "len": 45,
      "hue": 300,
-     "target": null
+     "target": null,
+     "note": ""
     },
     {
      "id": "xbr70oylc",
@@ -120,7 +169,8 @@
      "cat": "class",
      "len": 50,
      "hue": 12,
-     "target": 110
+     "target": 110,
+     "note": ""
     },
     {
      "id": "x8exegz5y",
@@ -128,7 +178,62 @@
      "cat": "lunch",
      "len": 50,
      "hue": 240,
-     "target": null
+     "target": null,
+     "note": ""
+    },
+    {
+     "id": "x8ykwrwle",
+     "name": "Class Meeting (Sr)",
+     "cat": "other",
+     "len": 45,
+     "hue": 130,
+     "target": null,
+     "note": ""
+    },
+    {
+     "id": "xmuh0sua5",
+     "name": "Class Meeting (UM)",
+     "cat": "other",
+     "len": 45,
+     "hue": 268,
+     "target": null,
+     "note": ""
+    },
+    {
+     "id": "xo216e9fu",
+     "name": "Class Meeting (Prep)",
+     "cat": "other",
+     "len": 45,
+     "hue": 186,
+     "target": null,
+     "note": ""
+    },
+    {
+     "id": "xva669t9u",
+     "name": "Class Meeting (LM)",
+     "cat": "other",
+     "len": 45,
+     "hue": 95,
+     "target": null,
+     "note": ""
+    },
+    {
+     "id": "x6ctjn62v",
+     "name": "Chapel",
+     "cat": "other",
+     "len": 40,
+     "hue": 12,
+     "target": null,
+     "note": ""
+    },
+    {
+     "id": "xyrltkd3o",
+     "name": "Other",
+     "cat": "other",
+     "len": 45,
+     "hue": 240,
+     "target": null,
+     "note": ""
     }
    ],
    "days": [
@@ -154,10 +259,10 @@
        "gap": null
       },
       {
-       "id": "x4ipilqdi",
+       "id": "xj8w9tue6",
        "t": "b",
-       "blockId": "xk7128i5s",
-       "dur": 35,
+       "blockId": "x1mvgzq25",
+       "dur": null,
        "gap": null
       },
       {
@@ -196,21 +301,38 @@
           "dur": null,
           "gap": 0
          }
+        ],
+        [
+         {
+          "id": "xmxi700f0",
+          "t": "b",
+          "blockId": "x8ykwrwle",
+          "dur": 50,
+          "gap": null,
+          "note": "Upperclassmen Class Meetings alternate between first and second lunch block each week to accommodate volunteering in Monday's HD courses, if any are scheduled."
+         },
+         {
+          "id": "xssl2jxxs",
+          "t": "b",
+          "blockId": "xmuh0sua5",
+          "dur": 50,
+          "gap": 0
+         }
         ]
        ]
-      },
-      {
-       "id": "xj8w9tue6",
-       "t": "b",
-       "blockId": "x1mvgzq25",
-       "dur": null,
-       "gap": null
       },
       {
        "id": "x2b11shch",
        "t": "b",
        "blockId": "xnobogdec",
        "dur": null,
+       "gap": null
+      },
+      {
+       "id": "x4ipilqdi",
+       "t": "b",
+       "blockId": "xk7128i5s",
+       "dur": 35,
        "gap": null
       }
      ]
@@ -233,10 +355,10 @@
        "gap": null
       },
       {
-       "id": "xqlsc7tup",
+       "id": "x3b8cyi69",
        "t": "b",
-       "blockId": "xmzlgbk3k",
-       "dur": 35,
+       "blockId": "xdh374o3r",
+       "dur": null,
        "gap": null
       },
       {
@@ -279,17 +401,17 @@
        ]
       },
       {
-       "id": "x3b8cyi69",
-       "t": "b",
-       "blockId": "xdh374o3r",
-       "dur": null,
-       "gap": null
-      },
-      {
        "id": "xcdexjszx",
        "t": "b",
        "blockId": "xjbvu5oum",
        "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xqlsc7tup",
+       "t": "b",
+       "blockId": "xmzlgbk3k",
+       "dur": 35,
        "gap": null
       }
      ]
@@ -365,17 +487,18 @@
        "gap": null
       },
       {
-       "id": "xnzn55hj3",
+       "id": "x9wj1iyec",
        "t": "b",
-       "blockId": "x411fkpjg",
+       "blockId": "xdh374o3r",
        "dur": null,
-       "gap": null
+       "gap": null,
+       "note": "The sequence of blocks 1-6 breaks on Thursday to spread morning flex blocks more evenly."
       },
       {
-       "id": "x9twie9pr",
+       "id": "xtctxqwv6",
        "t": "b",
-       "blockId": "xp7taqjdf",
-       "dur": 35,
+       "blockId": "xjbvu5oum",
+       "dur": null,
        "gap": null
       },
       {
@@ -418,17 +541,17 @@
        ]
       },
       {
-       "id": "x9wj1iyec",
+       "id": "xnzn55hj3",
        "t": "b",
-       "blockId": "xdh374o3r",
+       "blockId": "x411fkpjg",
        "dur": null,
        "gap": null
       },
       {
-       "id": "xtctxqwv6",
+       "id": "x9twie9pr",
        "t": "b",
-       "blockId": "xjbvu5oum",
-       "dur": null,
+       "blockId": "xp7taqjdf",
+       "dur": 35,
        "gap": null
       }
      ]
@@ -444,17 +567,17 @@
        "gap": null
       },
       {
-       "id": "xkppkp5gp",
+       "id": "xvhu31u6z",
        "t": "b",
-       "blockId": "x39kawkxz",
+       "blockId": "x1mvgzq25",
        "dur": null,
        "gap": null
       },
       {
-       "id": "xkjo04124",
+       "id": "xl034dy1c",
        "t": "b",
-       "blockId": "xby5foal1",
-       "dur": 35,
+       "blockId": "xnobogdec",
+       "dur": null,
        "gap": null
       },
       {
@@ -497,147 +620,94 @@
        ]
       },
       {
-       "id": "xvhu31u6z",
-       "t": "b",
-       "blockId": "x1mvgzq25",
-       "dur": null,
-       "gap": null
-      },
-      {
-       "id": "xl034dy1c",
-       "t": "b",
-       "blockId": "xnobogdec",
-       "dur": null,
-       "gap": null
-      }
-     ]
-    },
-    {
-     "start": 480,
-     "items": []
-    },
-    {
-     "start": 480,
-     "items": []
-    },
-    {
-     "start": 510,
-     "items": [
-      {
-       "id": "xf27i5rbo",
-       "t": "b",
-       "blockId": "xpne1shdk",
-       "dur": null,
-       "gap": null
-      },
-      {
-       "id": "x6ehfqkl0",
-       "t": "b",
-       "blockId": "x411fkpjg",
-       "dur": null,
-       "gap": null
-      },
-      {
-       "id": "xz5wbtxdw",
-       "t": "b",
-       "blockId": "xk7128i5s",
-       "dur": 35,
-       "gap": null
-      },
-      {
-       "id": "xh89mi1as",
-       "t": "s",
-       "gap": 0,
-       "lanes": [
-        [
-         {
-          "id": "xazaja8zs",
-          "t": "b",
-          "blockId": "xq02puy56",
-          "dur": null,
-          "gap": null
-         },
-         {
-          "id": "xymifl5sr",
-          "t": "b",
-          "blockId": "xbr70oylc",
-          "dur": null,
-          "gap": 0
-         }
-        ],
-        [
-         {
-          "id": "x9ynq5r5j",
-          "t": "b",
-          "blockId": "xbr70oylc",
-          "dur": null,
-          "gap": null
-         },
-         {
-          "id": "xy5wt2c12",
-          "t": "b",
-          "blockId": "x8exegz5y",
-          "dur": null,
-          "gap": 0
-         }
-        ]
-       ]
-      },
-      {
-       "id": "xz19qloxs",
-       "t": "b",
-       "blockId": "xdh374o3r",
-       "dur": null,
-       "gap": null
-      },
-      {
-       "id": "xgabgv88g",
-       "t": "b",
-       "blockId": "xjbvu5oum",
-       "dur": null,
-       "gap": null
-      }
-     ]
-    },
-    {
-     "start": 510,
-     "items": [
-      {
-       "id": "x3k5jxc7p",
-       "t": "b",
-       "blockId": "xpne1shdk",
-       "dur": null,
-       "gap": null
-      },
-      {
-       "id": "xmrc886qh",
+       "id": "xkppkp5gp",
        "t": "b",
        "blockId": "x39kawkxz",
        "dur": null,
        "gap": null
       },
       {
-       "id": "x2pk4us5z",
+       "id": "xkjo04124",
        "t": "b",
-       "blockId": "xmzlgbk3k",
+       "blockId": "xby5foal1",
        "dur": 35,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 560,
+     "items": [
+      {
+       "id": "xjygziubb",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "xqtl54kh6",
+          "t": "b",
+          "blockId": "xva669t9u",
+          "dur": null,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "xjotc1wus",
+          "t": "b",
+          "blockId": "xo216e9fu",
+          "dur": null,
+          "gap": null
+         }
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "start": 480,
+     "items": []
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x49by80mo",
+       "t": "b",
+       "blockId": "xpne1shdk",
+       "dur": null,
        "gap": null
       },
       {
-       "id": "x0l9reyhf",
+       "id": "xw200tw8k",
+       "t": "b",
+       "blockId": "xjbvu5oum",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xz56v3t0h",
+       "t": "b",
+       "blockId": "xdh374o3r",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xm9c7gn1e",
        "t": "s",
        "gap": 0,
        "lanes": [
         [
          {
-          "id": "xoppxqeg0",
+          "id": "xaqcr2dfc",
           "t": "b",
-          "blockId": "x8exegz5y",
+          "blockId": "xq02puy56",
           "dur": null,
           "gap": null
          },
          {
-          "id": "xsrmggb88",
+          "id": "xsndo91rm",
           "t": "b",
           "blockId": "xbr70oylc",
           "dur": null,
@@ -646,14 +716,109 @@
         ],
         [
          {
-          "id": "x3mkgkn4l",
+          "id": "xl1bh915m",
           "t": "b",
           "blockId": "xbr70oylc",
           "dur": null,
           "gap": null
          },
          {
-          "id": "xk047eqvk",
+          "id": "x261357ln",
+          "t": "b",
+          "blockId": "x8exegz5y",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "xjx08ivpr",
+          "t": "b",
+          "blockId": "xmuh0sua5",
+          "dur": 50,
+          "gap": null
+         },
+         {
+          "id": "x74ivtb5q",
+          "t": "b",
+          "blockId": "x8ykwrwle",
+          "dur": 50,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x9g8yk7vb",
+       "t": "b",
+       "blockId": "x411fkpjg",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "x4uxjcbcn",
+       "t": "b",
+       "blockId": "xk7128i5s",
+       "dur": 35,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "xlvmdxp3m",
+       "t": "b",
+       "blockId": "xpne1shdk",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xurvyh17l",
+       "t": "b",
+       "blockId": "xnobogdec",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "x84pzh1ic",
+       "t": "b",
+       "blockId": "x1mvgzq25",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xlgxrdp4k",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xae9fna1u",
+          "t": "b",
+          "blockId": "x8exegz5y",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "x9ov46xcx",
+          "t": "b",
+          "blockId": "xbr70oylc",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "xlfwxb30e",
+          "t": "b",
+          "blockId": "xbr70oylc",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "xj2zpml7w",
           "t": "b",
           "blockId": "xq02puy56",
           "dur": null,
@@ -663,17 +828,17 @@
        ]
       },
       {
-       "id": "x5imol0yx",
+       "id": "xi2qplz60",
        "t": "b",
-       "blockId": "x1mvgzq25",
+       "blockId": "x39kawkxz",
        "dur": null,
        "gap": null
       },
       {
-       "id": "xjj0s1wbq",
+       "id": "x1qr2yysn",
        "t": "b",
-       "blockId": "xnobogdec",
-       "dur": null,
+       "blockId": "xmzlgbk3k",
+       "dur": 35,
        "gap": null
       }
      ]
@@ -682,34 +847,34 @@
      "start": 510,
      "items": [
       {
-       "id": "xoffcq2x3",
-       "t": "b",
-       "blockId": "x411fkpjg",
-       "dur": 60,
-       "gap": null
-      },
-      {
-       "id": "xjgwt262o",
-       "t": "b",
-       "blockId": "xdh374o3r",
-       "dur": 60,
-       "gap": null
-      },
-      {
-       "id": "xissqq2em",
+       "id": "xltyue6i6",
        "t": "b",
        "blockId": "xjbvu5oum",
        "dur": 60,
        "gap": null
       },
       {
-       "id": "xknd5cart",
+       "id": "x7a4jtgcu",
+       "t": "b",
+       "blockId": "xdh374o3r",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xgq593i6b",
+       "t": "b",
+       "blockId": "x411fkpjg",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "x3bf9i8ra",
        "t": "s",
        "gap": 0,
        "lanes": [
         [
          {
-          "id": "x4i58yx0i",
+          "id": "x3x2aifm3",
           "t": "b",
           "blockId": "xq02puy56",
           "dur": 70,
@@ -718,7 +883,7 @@
         ],
         [
          {
-          "id": "x2ns4bz87",
+          "id": "xar3lb9hz",
           "t": "b",
           "blockId": "x8exegz5y",
           "dur": 70,
@@ -727,7 +892,7 @@
         ],
         [
          {
-          "id": "x8cz4wpsl",
+          "id": "xy56563yu",
           "t": "b",
           "blockId": "xt7m8uxk1",
           "dur": null,
@@ -742,41 +907,41 @@
      "start": 510,
      "items": [
       {
-       "id": "x1d877afd",
+       "id": "xaqnpaj6h",
        "t": "b",
        "blockId": "xpne1shdk",
        "dur": null,
        "gap": null
       },
       {
-       "id": "xzooh5tdh",
+       "id": "xkd3ndubp",
        "t": "b",
        "blockId": "x39kawkxz",
        "dur": null,
        "gap": null
       },
       {
-       "id": "xxf8iwrrf",
+       "id": "xr1pozt36",
        "t": "b",
-       "blockId": "xp7taqjdf",
-       "dur": 35,
+       "blockId": "x1mvgzq25",
+       "dur": null,
        "gap": null
       },
       {
-       "id": "xgtp88c4m",
+       "id": "x8ec5l6pp",
        "t": "s",
        "gap": 0,
        "lanes": [
         [
          {
-          "id": "x37mehxvv",
+          "id": "x1wo4kz3e",
           "t": "b",
           "blockId": "xq02puy56",
           "dur": null,
           "gap": null
          },
          {
-          "id": "xg4edjky4",
+          "id": "xk62rq70j",
           "t": "b",
           "blockId": "xbr70oylc",
           "dur": null,
@@ -785,14 +950,14 @@
         ],
         [
          {
-          "id": "xsgmahs8l",
+          "id": "xh5ol8su5",
           "t": "b",
           "blockId": "xbr70oylc",
           "dur": null,
           "gap": null
          },
          {
-          "id": "x4llm7yf6",
+          "id": "xx17nt4i8",
           "t": "b",
           "blockId": "x8exegz5y",
           "dur": null,
@@ -802,18 +967,19 @@
        ]
       },
       {
-       "id": "x6zuw2uws",
-       "t": "b",
-       "blockId": "x1mvgzq25",
-       "dur": null,
-       "gap": null
-      },
-      {
-       "id": "xrwyzzzy3",
+       "id": "xb5yrls63",
        "t": "b",
        "blockId": "xnobogdec",
        "dur": null,
        "gap": null
+      },
+      {
+       "id": "xplh2wtov",
+       "t": "b",
+       "blockId": "x6ctjn62v",
+       "dur": 35,
+       "gap": null,
+       "note": "A single chapel per week is possible if it is moved to Walker or Elfers."
       }
      ]
     },
@@ -821,41 +987,41 @@
      "start": 510,
      "items": [
       {
-       "id": "x8num1sqj",
+       "id": "xenpr0v6u",
        "t": "b",
        "blockId": "xpne1shdk",
        "dur": null,
        "gap": null
       },
       {
-       "id": "xg5359gvq",
+       "id": "x5663yxvj",
        "t": "b",
        "blockId": "x411fkpjg",
        "dur": null,
        "gap": null
       },
       {
-       "id": "x8nieck29",
+       "id": "xu99rndo9",
        "t": "b",
-       "blockId": "xby5foal1",
-       "dur": 35,
+       "blockId": "xdh374o3r",
+       "dur": null,
        "gap": null
       },
       {
-       "id": "xxg0dx6vq",
+       "id": "xvnbd6x94",
        "t": "s",
        "gap": 0,
        "lanes": [
         [
          {
-          "id": "xnzfev5ce",
+          "id": "x4kc4lr5i",
           "t": "b",
           "blockId": "x8exegz5y",
           "dur": null,
           "gap": null
          },
          {
-          "id": "xnarm6bub",
+          "id": "xdojimx4a",
           "t": "b",
           "blockId": "xbr70oylc",
           "dur": null,
@@ -864,14 +1030,14 @@
         ],
         [
          {
-          "id": "xkftlwzci",
+          "id": "xbsli5eoh",
           "t": "b",
           "blockId": "xbr70oylc",
           "dur": null,
           "gap": null
          },
          {
-          "id": "xjy2nbboq",
+          "id": "xlzov7ujl",
           "t": "b",
           "blockId": "xq02puy56",
           "dur": null,
@@ -881,24 +1047,50 @@
        ]
       },
       {
-       "id": "x4yj56je8",
+       "id": "xuluehlso",
        "t": "b",
-       "blockId": "xdh374o3r",
+       "blockId": "xjbvu5oum",
        "dur": null,
        "gap": null
       },
       {
-       "id": "x48wt3yap",
+       "id": "xsha674a4",
        "t": "b",
-       "blockId": "xjbvu5oum",
-       "dur": null,
+       "blockId": "xby5foal1",
+       "dur": 35,
        "gap": null
       }
      ]
     },
     {
-     "start": 480,
-     "items": []
+     "start": 560,
+     "items": [
+      {
+       "id": "xm318e4o6",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "x3gv44rzj",
+          "t": "b",
+          "blockId": "xva669t9u",
+          "dur": null,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "xpecw41gm",
+          "t": "b",
+          "blockId": "xo216e9fu",
+          "dur": null,
+          "gap": null
+         }
+        ]
+       ]
+      }
+     ]
     }
    ]
   }
