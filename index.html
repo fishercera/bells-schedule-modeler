@@ -343,6 +343,7 @@ textarea.note-in { min-height: 58px; resize: vertical; font: 13px/1.4 var(--f-bo
   <div class="tabs" role="tablist" id="tabs">
     <button role="tab" data-act="view" data-v="schedule">Schedule</button>
     <button role="tab" data-act="view" data-v="lengths">Length table</button>
+    <button role="tab" data-act="view" data-v="groups">Groups</button>
     <button role="tab" data-act="view" data-v="compare">Compare</button>
   </div>
   <div class="spacer"></div>
@@ -474,8 +475,8 @@ const isCombo = g => Array.isArray(g?.members);
 const grpNames = (m, exceptId) => m.groups.filter(g => g.id !== exceptId).map(g => g.name);
 // Who a block is for, in words: its groups' names, or All students.
 const forText = (m, b) => b.groups.length ? b.groups.map(id => grpById(m, id)?.name).filter(Boolean).join(', ') : 'All students';
-// A small label after a block's name, e.g. "Sr" or "Prep · LM". Blocks for all students have none.
-const grpShort = name => name.length <= 6 ? name : shortName(name);
+// A small label after a block's name, e.g. "Senior" or "Prep · LM". Blocks for all students have none.
+const grpShort = name => name.length <= 8 ? name : `${name.slice(0, 7).trim()}…`;
 const gmark = (m, b) => b.groups.length ? `<span class="gmark" aria-hidden="true">${esc(b.groups.map(id => grpById(m, id)).filter(Boolean).map(g => grpShort(g.name)).join(' · '))}</span>` : '';
 // Notes are plain text: line breaks are kept, other control characters are dropped.
 const cleanNote = v => typeof v === 'string' ? v.replace(/\r\n?/g, '\n').replace(/\t/g, ' ').replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, '').slice(0, NOTE_MAX).trim() : '';
@@ -801,7 +802,7 @@ const saved = store.load(), loaded = loadModels(saved?.models);
 const S = {
   models: loaded.models.length ? loaded.models : sampleModels(),
   activeId: saved?.activeId, view: 'schedule', unit: saved?.unit === 'hrs' ? 'hrs' : 'min', zoom: has(ZOOMS, saved?.zoom) ? saved.zoom : 'Normal',
-  compare: Array.isArray(saved?.compare) ? saved.compare.filter(x => typeof x === 'string') : [], sel: null,
+  compare: Array.isArray(saved?.compare) ? saved.compare.filter(x => typeof x === 'string') : [], sel: null, gPeriod: 'all',
   fold: cleanFold(saved?.fold),
 };
 S.models.forEach((m, i) => normalizeModel(m, S.models.slice(0, i).map(x => x.name)));
@@ -998,6 +999,7 @@ function renderCenter() {
   const scrolls = [...c.querySelectorAll('.gridscroll')].map(e => e.scrollLeft);
   if (S.view === 'schedule') renderGrid(c);
   else if (S.view === 'lengths') renderLengths(c);
+  else if (S.view === 'groups') renderGroupsTab(c);
   else renderCompare(c);
   c.querySelectorAll('.gridscroll').forEach((e, i) => { e.scrollLeft = scrolls[i] || 0; });
 }
@@ -1092,7 +1094,7 @@ function ledgerHTML() {
       <div class="stat"><span class="k">Week 2</span>${tileR(t.w[1].acad)}</div>
       <div class="stat main"><span class="k">Two-week total</span>${tileR(t.all.acad)}</div>
     </div>
-    ${tagged && grades.length ? `<p class="hint">For all students: the lowest to highest of ${esc(grades.map(g => g.name).join(', '))}.</p>` : ''}
+    ${tagged && grades.length ? `<p class="hint">For all students: the lowest to highest of ${esc(grades.map(g => g.name).join(', '))}. The Groups tab shows each group.</p>` : ''}
     ${cls ? meterHTML(cls) : ''}
     ${short.length ? `<div><span class="pill short">${short.length} target${short.length > 1 ? 's' : ''} short</span> <span class="hint">${esc(short.join(', '))}</span></div>` : ''}
     <table class="ledger"><thead><tr><th>Block</th><th>Wk 1</th><th>Wk 2</th><th>2-wk</th></tr></thead><tbody>
@@ -1279,6 +1281,50 @@ function renderLengths(c) {
       ${days.map(d => `<td class="${d % 7 === 0 ? 'wkstart' : ''}">${cell(b, d)}</td>`).join('')}
       <td class="wkstart num">${fmtR(t.all.blocks[b.id])}${tg ? ` <span class="pill ${tg.met ? 'met' : 'short'}">${tg.met ? 'Met' : `${fmt(tg.short)} short`}</span>` : ''}</td></tr>`;
     }).join('')}`).join('')}</tbody></table></div>`;
+}
+/* The Groups tab and its CSV: a column for All students, then each plain group, then each combined group.
+   r is that column's totals (null for a combined group with no members). */
+function grpCols(m, G = grpResults(m)) {
+  const grades = m.groups.filter(g => !isCombo(g) && g.grade);
+  return [{ name: ALL_NAME, sub: grades.length ? `Range of ${grades.map(g => g.name).join(', ')}` : 'Every block, no grades set', r: G.all, all: true },
+    ...m.groups.filter(g => !isCombo(g)).map(g => ({ name: g.name, sub: g.grade ? 'Grade' : 'Group', r: G.byId.get(g.id) })),
+    ...m.groups.filter(isCombo).map(g => ({ name: g.name, sub: `Range of ${g.members.map(id => grpById(m, id)?.name).join(', ') || 'no one yet'}`, r: G.byId.get(g.id) }))];
+}
+function renderGroupsTab(c) {
+  const m = M(), G = grpResults(m), cols = grpCols(m, G), per = S.gPeriod;
+  const P = r => per === 'all' ? r.t.all : r.t.w[per];
+  const lanePart = someLaneBlocks(m), allPart = new Set([...lanePart, ...G.all.part]);
+  const periods = `<div class="tabs" style="font-size:12px">${[['all', 'Two weeks'], [0, 'Week 1'], [1, 'Week 2']].map(([p, l]) => `<button data-act="gPeriod" data-p="${p}" aria-selected="${per === p}" style="padding:1px 8px">${l}</button>`).join('')}</div>`;
+  const units = `<div class="tabs" style="font-size:12px"><button data-act="unit" data-u="min" aria-selected="${S.unit === 'min'}" style="padding:1px 8px">min</button><button data-act="unit" data-u="hrs" aria-selected="${S.unit === 'hrs'}" style="padding:1px 8px">h:mm</button></div>`;
+  const top = `<div class="pickrow"><strong>${esc(m.name)}</strong>${periods}${units}<button class="btn sm" data-act="groupsCSV" style="margin-left:auto">Export CSV…</button></div>`;
+  if (!m.groups.length) { c.innerHTML = `<div class="cmp">${top}<p class="note">This model has no student groups. Add them on the Schedule tab, in the Student groups panel.</p></div>`; return; }
+  const n = cols.length + 1;
+  const head = txt => `<tr class="tyrow"><th class="stick">${txt}</th><td colspan="${n - 1}"></td></tr>`;
+  const cell = (col, get, opts = {}) => {
+    if (!col.r) return '<td class="num">–</td>';
+    const v = get(col.r);
+    return `<td class="num">${v == null ? '–' : opts.count ? fmtCount(v) : opts.raw ? v : fmtR(v)}${opts.mark?.(col) ? ' <span class="lanemark" title="For only some of these students. This total counts the students who have it." aria-label="only some students">◐</span>' : ''}</td>`;
+  };
+  const line = (label, get, opts = {}) => `<tr class="${opts.bold ? 'b' : ''}"><td class="stick">${label}</td>${cols.map(col => cell(col, get, opts)).join('')}</tr>`;
+  const any = get => cols.some(col => col.r && (get(col.r)?.hi ?? 0) > 0);
+  const typeRows = m.types.filter(t => any(r => P(r).cats[t.id])).map(t => line(`<span data-tiptype="${esc(t.id)}">${esc(t.name)}${t.note ? '<span class="nmark">ⓘ</span>' : ''}</span>`, r => P(r).cats[t.id] || R()));
+  const tgt = per === 'all' && m.classTarget != null ? `<tr><td class="stick">Class time target, ${fmt(m.classTarget)}</td>${cols.map(col => { const s = col.r && targetState(m.classTarget, col.r.t.all.acad); return `<td>${s ? `<span class="pill ${s.met ? 'met' : 'short'}">${s.met ? 'Met' : `${fmt(s.short)} short`}</span>` : '–'}</td>`; }).join('')}</tr>` : '';
+  const runCell = col => !col.r ? '<td class="num">–</td>' : `<td class="num">${runText(col.r.f.run)}${col.r.f.run.partial ? ` <span class="lanemark" title="${esc(RUN_PARTIAL)}" aria-label="only some students">◐</span>` : ''}</td>`;
+  const blockRows = typeGroups(m).map(g => `<tr class="sub2"><td class="stick">${esc(g.name)}</td><td colspan="${n - 1}"></td></tr>${g.blocks.map(b => line(
+    `<span data-tipblock="${esc(b.id)}"><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}${gmark(m, b)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>${lanePart.has(b.id) ? ' <span class="lanemark" title="In only some lanes of a split." aria-label="in only some lanes">◐</span>' : ''}`,
+    r => P(r).blocks[b.id] ?? null, { mark: col => col.r && (col.all ? allPart : col.r.part).has(b.id) && !lanePart.has(b.id) })).join('')}`).join('');
+  const label = per === 'all' ? 'two weeks' : `Week ${per + 1}`;
+  c.innerHTML = `<div class="cmp">${top}
+    <p class="note">Each column is one group's time over ${label}: blocks for all students, plus blocks tagged for that group. A combined group and All students show the lowest to highest of their members. – means the group never has that block.</p>
+    <div class="tablewrap"><table class="lt"><thead><tr><th class="stick">${unitLabel() === 'min' ? 'Minutes' : 'Hours'}</th>${cols.map(col => `<th>${esc(col.name)}<span class="delta">${esc(col.sub)}</span></th>`).join('')}</tr></thead><tbody>
+      ${head('Class time')}${line('Class time', r => P(r).acad, { bold: true })}${tgt}
+      ${head('Time by type')}${typeRows.join('')}
+      ${any(r => P(r).free) ? line(`<span class="help" title="${esc(FREE_HELP)}">Free time</span>`, r => P(r).free) : ''}
+      ${line('Passing', r => P(r).pass)}
+      ${head(`<span class="help" title="${esc(TRANS_HELP)}">Transitions</span>`)}${line('Transitions', r => per === 'all' ? r.f.trans.all : r.f.trans.w[per], { count: true })}
+      <tr><td class="stick"><span class="help" title="${esc(RUN_HELP)}">Longest run of class blocks</span> <span class="hint">(two weeks)</span></td>${cols.map(runCell).join('')}</tr>
+      ${head('Named blocks')}${blockRows}
+    </tbody></table></div></div>`;
 }
 function miniHTML(m, lo, hi) {
   const y = v => (v - lo) / (hi - lo) * 100;
@@ -1493,6 +1539,8 @@ function setBlockCount(n) {
 const actions = {
   view(el) { S.view = el.dataset.v; S.sel = null; render(); },
   unit(el) { S.unit = el.dataset.u; persist(); render(); },
+  gPeriod(el) { const p = el.dataset.p; S.gPeriod = p === 'all' ? 'all' : +p; render(); },
+  groupsCSV() { exportDlg('groups'); },
   undo() { restore(undoStack, redoStack); },
   redo() { restore(redoStack, undoStack); },
   print() { window.print(); },
@@ -2085,19 +2133,35 @@ function totalsCSV(m) {
   rows.push(['Longest run of class blocks', 'Run', '', '', '', F.run.n ? `${F.run.n} blocks, ${F.run.span} min${F.run.partial ? ' (some lanes only)' : ''}` : 'None', '', '']);
   return csv(rows);
 }
-function exportDlg() {
+// Columns as on the Groups tab. Class time and transitions are given per week too; everything else is two-week.
+function groupsCSV(m) {
+  const cols = grpCols(m), rows = [['Item', 'Type', 'Period', ...cols.map(c => c.name)]];
+  const add = (item, type, period, get) => rows.push([item, type, period, ...cols.map(c => c.r ? get(c.r) : '')]);
+  const periods = [['Week 1', r => r.t.w[0]], ['Week 2', r => r.t.w[1]], ['Two weeks', r => r.t.all]];
+  periods.forEach(([p, P]) => add('Class time', 'Class time', p, r => plainR(P(r).acad)));
+  m.types.forEach(t => add(t.name, 'Type', 'Two weeks', r => plainR(r.t.all.cats[t.id])));
+  add('Free time', 'Free', 'Two weeks', r => plainR(r.t.all.free));
+  add('Passing', 'Passing', 'Two weeks', r => plainR(r.t.all.pass));
+  [['Week 1', r => r.f.trans.w[0]], ['Week 2', r => r.f.trans.w[1]], ['Two weeks', r => r.f.trans.all]].forEach(([p, get]) => add('Transitions (count, not minutes)', 'Transitions', p, r => plainR(get(r))));
+  add('Longest run of class blocks', 'Run', 'Two weeks', r => r.f.run.n ? `${r.f.run.n} blocks, ${r.f.run.span} min${r.f.run.partial ? ' (some students only)' : ''}` : 'None');
+  sortedBlocks(m).forEach(b => add(b.name, typeName(m, b.cat), 'Two weeks', r => r.t.all.blocks[b.id] ? plainR(r.t.all.blocks[b.id]) : ''));
+  return csv(rows);
+}
+function exportDlg(pre) {
   const m = M();
   const kinds = {
     model: { label: 'This model, to re-import (.json)', ext: 'json', text: () => JSON.stringify({ app: 'bell-schedule-modeler', version: FILE_VERSION, models: [m] }, null, 1) },
     all: { label: 'All models, to re-import (.json)', ext: 'json', text: () => JSON.stringify({ app: 'bell-schedule-modeler', version: FILE_VERSION, models: S.models }, null, 1) },
     bell: { label: 'Bell schedule (.csv)', ext: 'csv', text: () => scheduleCSV(m) },
     totals: { label: 'Totals by block (.csv)', ext: 'csv', text: () => totalsCSV(m) },
+    groups: { label: 'Totals by student group (.csv)', ext: 'csv', text: () => groupsCSV(m) },
   };
   openDlg(`<div class="dlg"><h2>Export</h2>
     <div class="field"><label for="xKind">What to export</label><select class="txt" id="xKind">${Object.entries(kinds).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select></div>
     <textarea class="txt" id="xText" readonly aria-label="Exported text"></textarea>
     <div class="dlgbtns"><button class="btn" id="xClose">Close</button><button class="btn" id="xCopy">Copy</button>${IS_LOCAL ? '<button class="btn primary" id="xSave">Download</button>' : ''}</div></div>`, d => {
     const area = $('#xText', d), kind = $('#xKind', d), fill = () => { area.value = kinds[kind.value].text(); };
+    if (pre && kinds[pre]) kind.value = pre;
     kind.onchange = fill; fill();
     $('#xClose', d).onclick = () => dlg.close();
     $('#xCopy', d).onclick = () => {
