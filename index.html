@@ -267,6 +267,8 @@ body.sizing, body.sizing * { cursor: ns-resize !important; }
 .lt input.diff { background: var(--accent-soft); font-weight: 500; }
 .lt .fixed { font-family: var(--f-data); color: var(--muted); }
 .lt tr.tyrow th, .lt tr.tyrow td { background: var(--sunk); font: 600 11px/1.3 var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding-top: 6px; }
+.lt tr.gh td { text-align: left; font-weight: 600; padding-top: 7px; border-bottom-color: transparent; }
+.lt .gsub { display: inline-block; padding-left: 14px; font-weight: 500; }
 .lt tr.sub2 td { font-size: 11.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; text-align: left; }
 .note { color: var(--muted); padding: 10px 2px; max-width: 70ch; }
 .cmp { display: flex; flex-direction: column; gap: 12px; }
@@ -760,11 +762,12 @@ function someLaneBlocks(m) {
   }));
   return out;
 }
-function shortfalls(m, t = grpResults(m).all.t) {
+// onlyHad: judge only the block targets of blocks these totals include (one student group's blocks).
+function shortfalls(m, t = grpResults(m).all.t, onlyHad = false) {
   const out = [];
   const c = targetState(m.classTarget, t.all.acad);
   if (c && !c.met) out.push('Class time');
-  m.blocks.forEach(b => { const s = targetState(b.target, t.all.blocks[b.id]); if (s && !s.met) out.push(b.name); });
+  m.blocks.forEach(b => { if (onlyHad && !t.all.blocks[b.id]) return; const s = targetState(b.target, t.all.blocks[b.id]); if (s && !s.met) out.push(b.name); });
   return out;
 }
 function gridRange(m) {
@@ -803,6 +806,8 @@ const S = {
   models: loaded.models.length ? loaded.models : sampleModels(),
   activeId: saved?.activeId, view: 'schedule', unit: saved?.unit === 'hrs' ? 'hrs' : 'min', zoom: has(ZOOMS, saved?.zoom) ? saved.zoom : 'Normal',
   compare: Array.isArray(saved?.compare) ? saved.compare.filter(x => typeof x === 'string') : [], sel: null, gPeriod: 'all',
+  // Which student groups Compare shows: 'all' (All students) or 'g:' plus a group's name in lower case.
+  cmpGroups: Array.isArray(saved?.cmpGroups) ? saved.cmpGroups.filter(x => typeof x === 'string').slice(0, 50) : ['all'],
   fold: cleanFold(saved?.fold),
 };
 S.models.forEach((m, i) => normalizeModel(m, S.models.slice(0, i).map(x => x.name)));
@@ -814,7 +819,7 @@ let undoStack = [], redoStack = [], saveFailed = false;
 function persist() {
   // A column that only opened to show a selection is saved as folded, the way the person left it.
   const fold = { ...S.fold, right: S.fold.right || rightAuto };
-  const ok = store.save({ models: S.models, activeId: S.activeId, unit: S.unit, zoom: S.zoom, compare: S.compare, fold });
+  const ok = store.save({ models: S.models, activeId: S.activeId, unit: S.unit, zoom: S.zoom, compare: S.compare, cmpGroups: S.cmpGroups, fold });
   if (!ok && !saveFailed) { saveFailed = true; toast('This browser is not saving changes. Use Export to keep your work.'); }
 }
 /* Two tabs used to overwrite each other: each saved its own full copy, so the last one to save erased the
@@ -829,6 +834,7 @@ store.watch(data => {
   S.models.forEach((m, i) => normalizeModel(m, S.models.slice(0, i).map(x => x.name)));
   if (!S.models.some(m => m.id === S.activeId)) S.activeId = S.models[0].id;
   if (Array.isArray(data.compare)) S.compare = data.compare.filter(x => typeof x === 'string');
+  if (Array.isArray(data.cmpGroups)) S.cmpGroups = data.cmpGroups.filter(x => typeof x === 'string').slice(0, 50);
   // Undo steps hold whole copies of a model from before the other tab's edit, so they would undo that edit too.
   undoStack = []; redoStack = [];
   renderKeepFocus();
@@ -1346,7 +1352,17 @@ function renderCompare(c) {
   const pick = `<div class="pickrow"><strong>Compare:</strong>${S.models.map(m => `<label><input type="checkbox" id="cmp-${esc(m.id)}" data-f="cmp" data-m="${esc(m.id)}"${S.compare.includes(m.id) ? ' checked' : ''}>${esc(m.name)}</label>`).join('')}
     <div class="tabs" style="margin-left:auto;font-size:12px"><button data-act="unit" data-u="min" aria-selected="${S.unit === 'min'}" style="padding:1px 8px">min</button><button data-act="unit" data-u="hrs" aria-selected="${S.unit === 'hrs'}" style="padding:1px 8px">h:mm</button></div></div>`;
   if (!ms.length) { c.innerHTML = `<div class="cmp">${pick}<p class="note">Select at least one model to see its totals.</p></div>`; return; }
-  const T = ms.map(m => grpResults(m).all.t), F = ms.map(m => grpResults(m).all.f);
+  /* Student groups are matched across models by name; 'all' is All students. With only All students picked, the
+     table is one row per measure. With groups picked, each measure gets a row per group. */
+  const GR = ms.map(m => grpResults(m));
+  const gKey = g => `g:${nameKey(g.name)}`, gNames = new Map([['all', ALL_NAME]]);
+  ms.forEach(m => [...m.groups.filter(g => !isCombo(g)), ...m.groups.filter(isCombo)].forEach(g => { if (!gNames.has(gKey(g))) gNames.set(gKey(g), g.name); }));
+  const sel = [...gNames.keys()].filter(k => S.cmpGroups.includes(k));
+  if (!sel.length) sel.push('all');
+  const multi = sel.length > 1 || sel[0] !== 'all';
+  const res = (i, k) => { if (k === 'all') return GR[i].all; const g = ms[i].groups.find(x => gKey(x) === k); return g ? GR[i].byId.get(g.id) ?? null : null; };
+  const gpick = gNames.size > 1 ? `<div class="pickrow"><strong>Student groups:</strong>${[...gNames].map(([k, name]) => `<label><input type="checkbox" id="cg-${esc(k)}" data-f="cmpG" data-k="${esc(k)}"${sel.includes(k) ? ' checked' : ''}>${esc(name)}</label>`).join('')}</div>` : '';
+  const T = GR.map(g => g.all.t);
   const runDelta = (r, base, i) => {
     if (i === 0 || ms.length < 2) return '';
     const dn = r.n - base.n, ds = r.span - base.span;
@@ -1371,6 +1387,13 @@ function renderCompare(c) {
     const r = get(i); return `<td class="num">${r ? (opts.count ? fmtCount(r) : fmtR(r)) : '–'}${delta(r, i, get, opts.count)}</td>`;
   }).join('')}</tr>`;
   const head = txt => `<tr><th class="stick" colspan="${ms.length + 1}" style="text-align:left">${txt}</th></tr>`;
+  // With groups picked, a measure's name gets its own row and each group a row under it.
+  const ghead = label => `<tr class="gh"><td class="stick">${label}</td><td colspan="${ms.length}"></td></tr>`;
+  const gsub = k => `<span class="gsub">${esc(gNames.get(k))}</span>`;
+  const perGroup = (label, rowFor) => multi ? ghead(label) + sel.map(k => rowFor(gsub(k), k)).join('') : rowFor(label, 'all');
+  // get(i, r): model i's total, given one group's results r. A model without that group shows –.
+  const rowsFor = (label, get, opts = {}) => perGroup(label, (lab, k) => line(lab, i => { const r = res(i, k); return r ? get(i, r) : null; }, opts));
+  const shown = get => ms.some((_, i) => sel.some(k => { const r = res(i, k), v = r && get(i, r); return v && v.hi > 0; }));
   // A model with no time of some kind has 0 minutes of it, not a blank, so it still gets a difference.
   const z = r => r || R();
   // Each model has its own types, so types are matched by name. A model without a type shows –;
@@ -1378,33 +1401,41 @@ function renderCompare(c) {
   const tKey = (m, id) => nameKey(typeName(m, id));
   const typeRows = [], seenT = new Set();
   ms.forEach(m => m.types.forEach(t => { const k = nameKey(t.name); if (!seenT.has(k)) { seenT.add(k); typeRows.push({ k, name: t.name }); } }));
-  const typeTotal = (i, k) => { const t = ms[i].types.find(x => nameKey(x.name) === k); return t ? z(T[i].all.cats[t.id]) : null; };
-  const catRows = typeRows.filter(r => ms.some((_, i) => { const v = typeTotal(i, r.k); return v && v.hi > 0; })).map(r => line(`${esc(r.name)}, two-week`, i => typeTotal(i, r.k)));
+  const typeTotal = (i, k, r) => { const t = ms[i].types.find(x => nameKey(x.name) === k); return t ? z(r.t.all.cats[t.id]) : null; };
+  const catRows = typeRows.filter(row => shown((i, r) => typeTotal(i, row.k, r))).map(row => rowsFor(`${esc(row.name)}, two-week`, (i, r) => typeTotal(i, row.k, r)));
   // Blocks are matched by name and type name, so a "Block A" class is never compared with a "Block A" lunch.
   const keyOf = (m, b) => `${nameKey(b.name)}|${tKey(m, b.cat)}`;
-  const groups = new Map();
-  ms.forEach(m => m.blocks.forEach(b => { const k = keyOf(m, b); if (!groups.has(k)) groups.set(k, { key: k, name: b.name.trim(), tk: tKey(m, b.cat) }); }));
+  const blockKeys = new Map();
+  ms.forEach(m => m.blocks.forEach(b => { const k = keyOf(m, b); if (!blockKeys.has(k)) blockKeys.set(k, { key: k, name: b.name.trim(), tk: tKey(m, b.cat) }); }));
   // Listed by type, then by name, the same order as the block tray.
-  const byType = typeRows.map(r => ({ name: r.name, rows: [...groups.values()].filter(g => g.tk === r.k).sort((a, b) => natCmp(a.name, b.name)) })).filter(x => x.rows.length);
+  const byType = typeRows.map(r => ({ name: r.name, rows: [...blockKeys.values()].filter(g => g.tk === r.k).sort((a, b) => natCmp(a.name, b.name)) })).filter(x => x.rows.length);
   const sub = txt => `<tr class="sub2"><td class="stick">${esc(txt)}</td><td colspan="${ms.length}"></td></tr>`;
   const byKey = (i, key, w) => {
     const b = ms[i].blocks.find(x => keyOf(ms[i], x) === key);
     return b ? z(w.blocks[b.id]) : null;
   };
-  const status = ms.map((m, i) => { const s = shortfalls(m, T[i]); return s.length ? `<span class="pill short" title="${esc(s.join(', '))}">${s.length} short</span>` : (m.classTarget != null || m.blocks.some(b => b.target != null)) ? '<span class="pill met">All met</span>' : '<span class="hint">No targets</span>'; });
-  c.innerHTML = `<div class="cmp">${pick}
+  // A group is judged only on the block targets of blocks it has; All students on every target, as before groups.
+  const status = (m, r, k) => { const s = shortfalls(m, r.t, k !== 'all'); return s.length ? `<span class="pill short" title="${esc(s.join(', '))}">${s.length} short</span>` : (m.classTarget != null || m.blocks.some(b => b.target != null)) ? '<span class="pill met">All met</span>' : '<span class="hint">No targets</span>'; };
+  const targetRows = perGroup('Targets', (lab, k) => `<tr><td class="stick">${lab}</td>${ms.map((m, i) => { const r = res(i, k); return `<td>${r ? status(m, r, k) : '–'}</td>`; }).join('')}</tr>`);
+  const runRows = perGroup(`<span class="help" title="${esc(RUN_HELP)}">Longest run of class blocks</span>`, (lab, k) => `<tr><td class="stick">${lab}</td>${ms.map((m, i) => {
+    const r = res(i, k), base = res(0, k);
+    return `<td class="num">${r ? `${runText(r.f.run)}${r.f.run.partial ? ` <span class="lanemark" title="${esc(RUN_PARTIAL)}">◐</span>` : ''}${base ? runDelta(r.f.run, base.f.run, i) : ''}` : '–'}</td>`;
+  }).join('')}</tr>`);
+  c.innerHTML = `<div class="cmp">${pick}${gpick}
     <div class="minis">${ms.map((m, i) => `<div class="mini"><h3>${esc(m.name)}</h3>${miniHTML(m, lo, hi)}<span class="hint">${fmtR(T[i].all.acad)} ${unitLabel()} class time over two weeks</span></div>`).join('')}</div>
     <div class="tablewrap"><table class="lt"><thead><tr><th class="stick">${unitLabel() === 'min' ? 'Minutes' : 'Hours'}</th>${ms.map(m => `<th>${esc(m.name)}</th>`).join('')}</tr></thead><tbody>
       ${head('Class time')}
-      ${line('Week 1', i => z(T[i].w[0].acad))}${line('Week 2', i => z(T[i].w[1].acad))}${line('Two-week total', i => z(T[i].all.acad))}
-      <tr><td class="stick">Targets</td>${status.map(s => `<td>${s}</td>`).join('')}</tr>
-      ${head('Time by type')}${catRows.join('')}${line('Passing, two-week', i => T[i].all.pass)}
+      ${rowsFor('Week 1', (i, r) => z(r.t.w[0].acad))}${rowsFor('Week 2', (i, r) => z(r.t.w[1].acad))}${rowsFor('Two-week total', (i, r) => z(r.t.all.acad))}
+      ${targetRows}
+      ${head('Time by type')}${catRows.join('')}
+      ${shown((i, r) => r.t.all.free) ? rowsFor(`<span class="help" title="${esc(FREE_HELP)}">Free time</span>, two-week`, (i, r) => r.t.all.free) : ''}
+      ${rowsFor('Passing, two-week', (i, r) => r.t.all.pass)}
       ${head('<span class="help" title="' + esc(TRANS_HELP) + '">Transitions</span>')}
-      ${line('Week 1', i => F[i].trans.w[0], { count: true })}${line('Week 2', i => F[i].trans.w[1], { count: true })}${line('Two-week total', i => F[i].trans.all, { count: true })}
-      <tr><td class="stick"><span class="help" title="${esc(RUN_HELP)}">Longest run of class blocks</span></td>${ms.map((m, i) => `<td class="num">${runText(F[i].run)}${F[i].run.partial ? ` <span class="lanemark" title="${esc(RUN_PARTIAL)}">◐</span>` : ''}${runDelta(F[i].run, F[0].run, i)}</td>`).join('')}</tr>
-      ${head('Named blocks, two-week total')}${byType.map(x => sub(x.name) + x.rows.map(g => line(esc(g.name), i => byKey(i, g.key, T[i].all))).join('')).join('')}
+      ${rowsFor('Week 1', (i, r) => r.f.trans.w[0], { count: true })}${rowsFor('Week 2', (i, r) => r.f.trans.w[1], { count: true })}${rowsFor('Two-week total', (i, r) => r.f.trans.all, { count: true })}
+      ${runRows}
+      ${head('Named blocks, two-week total')}${byType.map(x => sub(x.name) + x.rows.map(g => rowsFor(esc(g.name), (i, r) => byKey(i, g.key, r.t.all))).join('')).join('')}
     </tbody></table></div>
-    ${ms.length > 1 ? `<p class="note">Differences compare each model with ${esc(ms[0].name)}. When a total is a range, the low and high ends are compared separately. Blocks with the same name and type are matched across models; – means the model has no such block.</p>` : ''}</div>`;
+    ${ms.length > 1 ? `<p class="note">Differences compare each model with ${esc(ms[0].name)}${multi ? ', group by group' : ''}. When a total is a range, the low and high ends are compared separately. Blocks with the same name and type are matched across models; – means the model has no such block${multi ? ', or no student group by that name' : ''}.</p>` : ''}</div>`;
 }
 
 /* ---------- Editing operations ---------- */
@@ -1750,6 +1781,10 @@ const fields = {
   ltDefault(v, el) { setDefaultLen(el.dataset.b, v); },
   cmp(v, el) {
     const id = el.dataset.m; S.compare = el.checked ? [...S.compare, id] : S.compare.filter(x => x !== id);
+    persist(); queueRender();
+  },
+  cmpG(v, el) {
+    const k = el.dataset.k; S.cmpGroups = el.checked ? [...new Set([...S.cmpGroups, k])] : S.cmpGroups.filter(x => x !== k);
     persist(); queueRender();
   },
 };
