@@ -762,7 +762,7 @@ const unitLabel = () => S.unit === 'hrs' ? 'h:mm' : 'min';
 function render() { hideTip(); dropStaleSel(); followSel(); renderTop(); renderLeft(); renderCenter(); renderRight(); }
 /* Selecting something new shows its editor: a folded editor panel unfolds, and a folded right column opens
    (and folds again once nothing is selected). Placing a block by dragging selects it quietly, without opening. */
-const selKey = s => s ? `${s.kind}:${s.id ?? s.d}` : '';
+const selKey = s => s ? `${s.kind}:${s.ids?.join(',') ?? s.id ?? s.d}` : '';
 function followSel() {
   const k = selKey(S.sel), quiet = quietSel;
   quietSel = false;
@@ -779,7 +779,7 @@ function followSel() {
 function dropStaleSel() {
   const m = M(), s = S.sel;
   if (!s) return;
-  if ((s.kind === 'item' && !findItem(m, s.id)) || (s.kind === 'block' && !blockOf(m, s.id)) || (s.kind === 'type' && !typeById(m, s.id)) || (s.kind === 'day' && !m.days[s.d])) S.sel = null;
+  if ((s.kind === 'item' && !findItem(m, s.id)) || (s.kind === 'block' && !blockOf(m, s.id)) || (s.kind === 'type' && !typeById(m, s.id)) || (s.kind === 'run' && !runInfo(m, s)) || (s.kind === 'day' && !m.days[s.d])) S.sel = null;
 }
 /* Redrawing replaces the panels, which would drop keyboard focus (Tab would land nowhere).
    This finds the focused field or button again by its id or data attributes and refocuses it. */
@@ -843,7 +843,8 @@ function renderLeft() {
   const tray = `
     <div class="field"><label for="blockCount">Number of blocks</label>
       <input class="txt num" id="blockCount" type="number" min="1" max="40" value="${m.blocks.length}" data-f="blockCount"></div>
-    <p class="hint">Drag a block onto a day. Click a block to rename it or set its length, or a type's name for that type's settings.</p>
+    <p class="hint">Drag a block onto a day. Click a block to rename it or set its length, or a type's name for that type's settings.
+      On the calendar, Ctrl+drag copies, and Shift+click selects several blocks in a row to copy or move together.</p>
     <div class="tray">${typeGroups(m, true).map(g => `
       <div class="tgroup" role="group" aria-label="${esc(g.name)} blocks">
         <div class="thead${S.sel?.kind === 'type' && S.sel.id === g.id ? ' on' : ''}">
@@ -909,6 +910,7 @@ function weekHTML(m, w, lo, hi, t) {
       <div class="axis" style="height:${H}px">${hours.join('')}</div>${colsHTML}
     </div></div></section>`;
 }
+const isSel = id => S.sel?.kind === 'item' ? S.sel.id === id : S.sel?.kind === 'run' && S.sel.ids.includes(id);
 function seqHTML(m, items, t0, origin, top, d) {
   const k = ppm();
   return layoutSeq(m, items, t0, top).map(({ it, gap, start, end }, i) => {
@@ -920,14 +922,14 @@ function seqHTML(m, items, t0, origin, top, d) {
     }
     const top_ = (start - origin) * k, h = (end - start) * k;
     if (it.t === 's') {
-      const on = S.sel?.kind === 'item' && S.sel.id === it.id;
+      const on = isSel(it.id);
       out += `<div class="split${on ? ' on' : ''}" data-split="${esc(it.id)}" style="top:${top_}px;height:${h}px">
-        <button class="splittab" data-item="${esc(it.id)}" title="Split section: drag to move, click for options">≡</button>
+        <button class="splittab" data-item="${esc(it.id)}" title="Split section: drag to move, Ctrl+drag to copy, click for options">≡</button>
         ${it.lanes.map((l, li) => `<div class="lane" data-lane="${esc(it.id)}:${li}">${seqHTML(m, l, start, start, false, d)}</div>`).join('')}</div>`;
     } else {
       const b = blockOf(m, it.blockId);
       if (b) {
-        const on = S.sel?.kind === 'item' && S.sel.id === it.id, mins = end - start, changed = it.dur != null && it.dur !== b.len;
+        const on = isSel(it.id), mins = end - start, changed = it.dur != null && it.dur !== b.len;
         out += `<div class="blk${on ? ' on' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px" ${isAcad(m, b) ? '' : 'data-noncat'} data-item="${esc(it.id)}" tabindex="0" role="button"
           aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes${b.note ? ', has a note' : ''}">
           <span class="rz t" data-rz="t"></span>
@@ -992,6 +994,7 @@ function inspectorHTML() {
   if (!sel) return '';
   if (sel.kind === 'block') return blockInspector(m, blockOf(m, sel.id));
   if (sel.kind === 'type') return typeInspector(m, typeById(m, sel.id));
+  if (sel.kind === 'run') { const info = runInfo(m, sel); return info ? runInspector(m, info) : ''; }
   if (sel.kind === 'day') return dayInspector(m, sel.d);
   const f = findItem(m, sel.id);
   if (!f) return '';
@@ -1065,9 +1068,26 @@ function itemInspector(m, f) {
       <button class="btn sm" data-act="moveItem" data-dir="1" ${f.idx === f.seq.length - 1 ? 'disabled' : ''}>Later</button>
       ${f.top ? '<button class="btn sm" data-act="splitItem">Split into lanes</button>' : ''}
       <button class="btn sm" data-act="dupItem">Duplicate</button>
+      ${f.top ? '<button class="btn sm" data-act="asRun">Copy to other days…</button>' : ''}
       <button class="btn sm danger" data-act="delItem">Remove</button>
     </div>
     ${f.top ? '' : `<div class="btnrow"><button class="btn sm" data-act="selSplit">Split options</button></div>`}`);
+}
+function runInspector(m, info) {
+  const L = layoutSeq(m, info.seq, info.top ? m.days[info.d].start : layoutFor(m, info.split, info.d).start, info.top);
+  const start = L[info.from].start, end = L[info.to].end, n = info.items.length;
+  const label = x => x.t === 's' ? 'a split' : blockOf(m, x.blockId)?.name ?? '?';
+  const title = n === 1 ? (info.items[0].t === 's' ? 'Split' : label(info.items[0])) : `${n} items`;
+  const grid = [0, 1].map(w => `<div class="btnrow">${[0, 1, 2, 3, 4, 5, 6].map(i => { const t = w * 7 + i; return `<button class="btn sm" data-act="copyRun" data-d="${t}" ${t === info.d ? 'disabled' : ''} title="${dayName(t)}" style="min-width:38px;padding-inline:3px">${DAYS[i].slice(0, 2)}${i === 0 ? ` W${w + 1}` : ''}</button>`; }).join('')}</div>`).join('');
+  return inspPanel(`${esc(title)}, ${dayName(info.d)}${info.top ? '' : `, lane ${info.lane + 1}`}`, `
+    <p class="hint">${clock(start)}–${clock(end)}: ${esc(info.items.map(label).join(', '))}.</p>
+    ${info.top ? `<div class="field"><span class="lab">Copy to</span>${grid}
+      <div class="btnrow"><button class="btn sm" data-act="copyRunWeekdays">All other weekdays</button></div>
+      <p class="hint">The copy goes in at ${clock(start)}. Nothing is overwritten: later blocks on that day move down.</p></div>`
+      : '<p class="hint">These are inside a split. To copy the split to another day, Shift+click its ≡ tab or click the tab and choose Copy to other days.</p>'}
+    <div class="btnrow"><button class="btn sm" data-act="dupRun">Duplicate here</button>
+      <button class="btn sm danger" data-act="delRun">Remove</button></div>
+    <p class="hint">Shift+click a block or a split's ≡ tab in the same ${info.top ? 'day' : 'lane'} to change what's selected. Ctrl+drag (or Alt+drag) copies the selection to wherever you drop it; a plain drag moves it.</p>`);
 }
 function layoutFor(m, split, d) { return layoutSeq(m, m.days[d].items, m.days[d].start, true).find(x => x.it.id === split.id); }
 function splitInspector(m, f) {
@@ -1076,6 +1096,8 @@ function splitInspector(m, f) {
     <p class="hint">${clock(L.start)}–${clock(L.end)}. Lanes run at the same time, so their minutes are never added together. Drag blocks into a lane, or use each lane's own passing and length.</p>
     ${f.idx > 0 ? `<div class="field"><label for="iGap">Passing before this split (min)</label><input class="txt num" id="iGap" type="number" min="0" max="${LIM.gap[1]}" value="${L.gap}" data-f="iGap"></div>` : ''}
     <div class="btnrow">
+      <button class="btn sm" data-act="dupItem">Duplicate</button>
+      <button class="btn sm" data-act="asRun">Copy to other days…</button>
       <button class="btn sm" data-act="addLane" ${n >= MAX_LANES ? 'disabled' : ''}>Add lane</button>
       ${f.it.lanes.map((_, i) => `<button class="btn sm" data-act="keepLane" data-l="${i}">Keep only lane ${i + 1}</button>`).join('')}
       ${n > 2 ? f.it.lanes.map((_, i) => `<button class="btn sm" data-act="dropLane" data-l="${i}">Remove lane ${i + 1}</button>`).join('') : ''}
@@ -1230,6 +1252,52 @@ function removeBlock(m, id) {
 function tidy(m) {
   m.days.forEach(day => { day.items = day.items.filter(it => it.t !== 's' || it.lanes.some(l => l.length)); });
 }
+/* A run is several placements next to each other in one day (or one lane of a split), selected with Shift+click.
+   runInfo gives its place, or null once an edit has split it up or removed part of it. */
+function runInfo(m, sel) {
+  if (sel?.kind !== 'run' || !Array.isArray(sel.ids) || !sel.ids.length) return null;
+  const fs = sel.ids.map(id => findItem(m, id));
+  if (fs.some(f => !f) || fs.some(f => f.seq !== fs[0].seq)) return null;
+  const idx = fs.map(f => f.idx).sort((a, b) => a - b);
+  if (idx.some((v, i) => i && v !== idx[i - 1] + 1)) return null;
+  const f0 = fs.find(f => f.idx === idx[0]);
+  return { ...f0, from: idx[0], to: idx[idx.length - 1], items: f0.seq.slice(idx[0], idx[idx.length - 1] + 1) };
+}
+// Shift+click: from the item selected first (the anchor) to this one, if they're in the same day or lane.
+function extendRun(m, id) {
+  const anchor = S.sel?.kind === 'item' ? S.sel.id : S.sel?.kind === 'run' ? S.sel.anchor : null;
+  if (!anchor || anchor === id) return null;
+  const a = findItem(m, anchor), b = findItem(m, id);
+  if (!a || !b) return null;
+  if (a.seq !== b.seq) { toast('Shift+click selects blocks in the same day, or in the same lane of a split.'); return null; }
+  const i = Math.min(a.idx, b.idx), j = Math.max(a.idx, b.idx);
+  return { kind: 'run', anchor, ids: a.seq.slice(i, j + 1).map(x => x.id) };
+}
+/* Puts copies of items into a day at time T: before the first block that starts at or after T. Nothing is
+   overwritten; whatever comes after moves later. The copy starts at T unless the block before it is still
+   running then, in which case it follows that block after the usual passing time. False if the day is full. */
+function insertAtTime(m, d, items, T) {
+  const day = m.days[d];
+  if (day.items.length + items.length > MAX.items) return false;
+  const L = layoutSeq(m, day.items, day.start, true), copies = items.map(reId);
+  let at = L.findIndex(x => x.start >= T);
+  if (at < 0) at = L.length;
+  copies[0].gap = null;
+  if (at === 0) day.start = T;
+  else { const g = T - L[at - 1].end; if (g >= 0 && g !== m.passing) copies[0].gap = clamp(g, ...LIM.gap); }
+  day.items.splice(at, 0, ...copies);
+  return true;
+}
+// Copies the selected run (in a day, not inside a split) to other days at the same time of day.
+function copyRunTo(targets) {
+  const m0 = M(), info = runInfo(m0, S.sel);
+  if (!info || !info.top) return;
+  const T = layoutSeq(m0, info.seq, m0.days[info.d].start, true)[info.from].start, ts = targets.filter(t => t !== info.d), full = [];
+  commit(m => { const inf = runInfo(m, S.sel); ts.forEach(t => { if (!insertAtTime(m, t, inf.items, T)) full.push(t); }); });
+  const done = ts.filter(t => !full.includes(t));
+  const where = done.length === 1 ? dayName(done[0]) : `${done.length} days`;
+  toast(done.length ? `Copied to ${where} at ${clock(T)}${full.length ? `. ${full.map(dayName).join(', ')} ${full.length > 1 ? 'are' : 'is'} full` : ''}.` : `Nothing copied: ${full.map(dayName).join(', ')} ${full.length > 1 ? 'are' : 'is'} full.`);
+}
 function copyDayTo(m, from, targets) {
   targets.filter(t => t !== from).forEach(t => { m.days[t] = { start: m.days[from].start, items: m.days[from].items.map(reId) }; });
 }
@@ -1304,6 +1372,22 @@ const actions = {
     });
     S.sel = { kind: 'item', id: s.id }; render();
     toast('Split into two lanes. Resize a lane\'s block or drag others into it.');
+  },
+  asRun() { const id = S.sel.id; S.sel = { kind: 'run', anchor: id, ids: [id] }; render(); },
+  copyRun(el) { copyRunTo([+el.dataset.d]); },
+  copyRunWeekdays() { copyRunTo([1, 2, 3, 4, 5, 8, 9, 10, 11, 12]); },
+  dupRun() {
+    let ids = [];
+    commit(m => {
+      const info = runInfo(m, S.sel); if (!info) return;
+      const copies = info.items.map(reId); copies[0].gap = null;
+      info.seq.splice(info.to + 1, 0, ...copies); ids = copies.map(x => x.id);
+    });
+    if (ids.length) { S.sel = ids.length > 1 ? { kind: 'run', anchor: ids[0], ids } : { kind: 'item', id: ids[0] }; render(); }
+  },
+  delRun() {
+    const sel = S.sel; S.sel = null;
+    commit(m => { const info = runInfo(m, sel); if (info) info.seq.splice(info.from, info.items.length); });
   },
   selSplit() { const f = findItem(M(), S.sel.id); S.sel = { kind: 'item', id: f.split.id }; render(); },
   addLane() { commit(m => { findItem(m, S.sel.id).it.lanes.push([]); }); },
@@ -1468,9 +1552,12 @@ document.addEventListener('pointerdown', e => {
     P = { kind: 'gap', id: f.it.id, y0: e.clientY, gap: layoutSeq(m, f.seq, t0, f.top)[f.idx].gap, snap: snapshot() };
   } else if (itEl || pal) {
     if (e.pointerType === 'touch') return; // touch scrolls; blocks are edited from the side panel
-    P = { kind: 'drag', pending: true, x0: e.clientX, y0: e.clientY, id: itEl?.dataset.item, pal: pal?.dataset.pal };
+    P = { kind: 'drag', pending: true, x0: e.clientX, y0: e.clientY, id: itEl?.dataset.item, pal: pal?.dataset.pal, shift: e.shiftKey, ids: [] };
     if (itEl) {
-      const r = itEl.closest('.split') && itEl.classList.contains('splittab') ? itEl.closest('.split').getBoundingClientRect() : itEl.getBoundingClientRect();
+      // Dragging any item of a selected run drags the whole run.
+      const run = S.sel?.kind === 'run' && S.sel.ids.length > 1 && S.sel.ids.includes(P.id) ? runInfo(m, S.sel) : null;
+      P.ids = run ? run.items.map(x => x.id) : [P.id];
+      const r = itemEl(P.ids[0])?.getBoundingClientRect() ?? itEl.getBoundingClientRect();
       P.grab = (e.clientY - r.top) / ppm();
     } else P.grab = 0;
   } else return;
@@ -1507,9 +1594,17 @@ function startDrag() {
   const m = M(); document.body.classList.add('dragging');
   let label = '';
   if (P.pal) label = blockOf(m, P.pal).name;
-  else { const f = findItem(m, P.id); label = f.it.t === 's' ? 'Split section' : blockOf(m, f.it.blockId).name; P.isSplit = f.it.t === 's'; document.querySelector(f.it.t === 's' ? `[data-split="${P.id}"]` : `.blk[data-item="${P.id}"]`)?.classList.add('lift'); }
+  else {
+    const fs = P.ids.map(id => findItem(m, id)).filter(Boolean), f = fs[0];
+    label = fs.length > 1 ? `${fs.length} items` : f.it.t === 's' ? 'Split section' : blockOf(m, f.it.blockId).name;
+    // A split can't go inside another split's lane.
+    P.isSplit = fs.some(x => x.it.t === 's');
+    fs.forEach(x => itemEl(x.it.id)?.classList.add('lift'));
+  }
   P.label = esc(label); ghost.hidden = false;
 }
+// The drawn element for a placement: a split's frame, or a block.
+const itemEl = id => document.querySelector(`[data-split="${CSS.escape(id)}"]`) || document.querySelector(`.blk[data-item="${CSS.escape(id)}"]`);
 function seqFor(m, ref) { return ref.split ? findItem(m, ref.split).it.lanes[ref.lane] : m.days[ref.d].items; }
 function computeDrop(x, y) {
   const m = M();
@@ -1526,13 +1621,14 @@ function computeDrop(x, y) {
     t0 = layoutFor(m, findItem(m, sid).it, d).start; box = laneEl.getBoundingClientRect();
   }
   const seq = seqFor(m, ref), top = !ref.split;
-  const L = layoutSeq(m, seq, t0, top).filter(x2 => x2.it.id !== P.id);
+  const own = x => P.ids.includes(x.id);
+  const L = layoutSeq(m, seq, t0, top).filter(x2 => !own(x2.it));
   let idx = L.length, lineT = L.length ? L[L.length - 1].end + m.passing / 2 : t0;
   for (let i = 0; i < L.length; i++) if (minute < (L[i].start + L[i].end) / 2) { idx = i; lineT = L[i].start - L[i].gap / 2; break; }
   // Dropping into an empty day, or dragging the first block of a day, sets the first bell.
-  const wasFirst = top && seq[0]?.id === P.id && idx === 0;
+  const wasFirst = top && seq.length && own(seq[0]) && idx === 0;
   let newStart = null;
-  if (top && (!seq.length || (seq.length === 1 && seq[0].id === P.id) || wasFirst)) {
+  if (top && (!seq.length || seq.every(own) || wasFirst)) {
     newStart = clamp(snap(minute - P.grab), ...LIM.start);
     if (Math.abs(newStart - m.defaultStart) <= 15) newStart = m.defaultStart;
     lineT = newStart;
@@ -1551,25 +1647,26 @@ function moveDrag(e) {
   if (t) Object.assign(dropline.style, { left: `${t.left}px`, top: `${t.lineY - 1}px`, width: `${t.width}px` });
 }
 function finishDrag() {
-  const drop = P.drop, id = P.id, palId = P.pal, copy = P.copy;
+  const drop = P.drop, ids = P.ids, palId = P.pal, copy = P.copy;
   ghost.hidden = true; dropline.hidden = true;
   document.body.classList.remove('dragging');
   if (!drop) { P = null; render(); return; }
-  let placed;
+  let placed = [];
   commit(m => {
     const seq = seqFor(m, drop.ref);
-    if (palId) placed = mkItem(palId);
+    if (palId) placed = [mkItem(palId)];
     else {
-      const f = findItem(m, id);
-      if (copy) placed = reId(f.it);
-      else { placed = f.it; f.seq.splice(f.idx, 1); }
-      placed.gap = null;
+      // A run keeps its own passing times inside it; only the first item takes the default where it lands.
+      const fs = ids.map(id => findItem(m, id)).filter(Boolean);
+      placed = fs.map(f => copy ? reId(f.it) : f.it);
+      if (!copy) [...fs].sort((a, b) => b.idx - a.idx).forEach(f => f.seq.splice(f.idx, 1));
+      placed[0].gap = null;
     }
     const at = drop.beforeId ? seq.findIndex(x => x.id === drop.beforeId) : -1;
-    seq.splice(at < 0 ? seq.length : at, 0, placed);
+    seq.splice(at < 0 ? seq.length : at, 0, ...placed);
     if (drop.newStart != null) m.days[drop.ref.d].start = drop.newStart;
   });
-  S.sel = { kind: 'item', id: placed.id }; quietSel = true;
+  S.sel = placed.length > 1 ? { kind: 'run', anchor: placed[0].id, ids: placed.map(x => x.id) } : { kind: 'item', id: placed[0].id }; quietSel = true;
   P = { suppressClick: true }; render();
   setTimeout(() => { if (P?.suppressClick) P = null; }, 0);
 }
@@ -1579,8 +1676,9 @@ function endPointer() {
   document.body.classList.remove('sizing');
   if (P.kind === 'drag') {
     if (!P.pending) return finishDrag();
-    const { id, pal } = P; P = null;
-    S.sel = id ? { kind: 'item', id } : { kind: 'block', id: pal };
+    const { id, pal, shift } = P; P = null;
+    const run = shift && id ? extendRun(M(), id) : null;
+    S.sel = run ?? (id ? { kind: 'item', id } : { kind: 'block', id: pal });
     render(); return;
   }
   const s = P.snap, id = P.id; P = null;
@@ -1670,6 +1768,7 @@ document.addEventListener('keydown', e => {
     S.sel = el.dataset.item ? { kind: 'item', id: el.dataset.item } : { kind: 'block', id: el.dataset.pal };
     render(); return;
   }
+  if (S.sel?.kind === 'run' && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); actions.delRun(); return; }
   if (S.sel?.kind !== 'item' || !findItem(M(), S.sel.id)) return;
   const id = S.sel.id;
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); actions.delItem(); return; }
