@@ -150,6 +150,7 @@ select.pick { width: auto; max-width: 260px; font-weight: 600; }
 .chip .ln { font: 500 12px var(--f-data); }
 /* Student groups: the list in the left column, the label on a block that's only for some groups, and checkbox lists */
 .gmark { display: inline-block; margin-left: 4px; padding: 0 3px; border: 1px solid currentColor; border-radius: 3px; font: 600 9.5px/1.3 var(--f-body); opacity: .85; vertical-align: 1px; white-space: nowrap; }
+.gmark.lmark { border-style: dashed; }
 .glist { display: flex; flex-direction: column; gap: 2px; }
 .glist .gsec { font: 600 11px/1.3 var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--rule); padding: 4px 0 1px; }
 .grow { display: flex; align-items: baseline; gap: 6px; width: 100%; padding: 3px 6px; border: 1px solid transparent; border-radius: 5px; background: none; text-align: left; cursor: pointer; }
@@ -409,7 +410,11 @@ const NOTE_MAX = 500, TYPE_NAME_MAX = 30, GROUP_NAME_MAX = 30;
 const DEFAULT_GROUPS = ['Prep', 'LM', 'UM', 'Senior'], ALL_NAME = 'All students';
 // Version 2 added each model's own types (with default lengths) and notes on types, blocks and single placements.
 // Version 3 added student groups. Older files still import, with the four default groups and every block for all students.
-const FILE_VERSION = 3;
+// Version 4 added blocks each student attends only some meetings of (block.limit). Older files count every meeting.
+const FILE_VERSION = 4;
+/* A block each student attends only some of, like one HD class a week out of several: block.limit is {n, per}, with
+   per 'week' or 'two' (two weeks), or null for every meeting. Totals count n meetings; the rest are Free time. */
+const LIMIT_MAX = 50;
 const HUES = [212, 158, 32, 340, 268, 186, 95, 12, 240, 52, 300, 130];
 const SNAP = 5, MIN_LEN = 5, MAX_LANES = 4;
 /* Allowed ranges, in minutes. Every way a number gets in (typing, dragging, import, saved data)
@@ -459,7 +464,7 @@ const bag = () => Object.create(null);
 const safeId = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(v);
 
 /* ---------- Model construction ---------- */
-const mkBlock = (name, cat, len, hue, target = null) => ({ id: uid(), name, cat, len, hue, target, note: '', groups: [] });
+const mkBlock = (name, cat, len, hue, target = null) => ({ id: uid(), name, cat, len, hue, target, note: '', groups: [], limit: null });
 const mkTypes = (lens = {}) => BUILTIN.map(t => ({ ...t, len: lens[t.id] ?? t.len, note: '' }));
 const mkGroups = () => DEFAULT_GROUPS.map(name => ({ id: uid(), name, grade: true }));
 const mkItem = (blockId, dur = null, gap = null) => ({ id: uid(), t: 'b', blockId, dur, gap });
@@ -495,7 +500,14 @@ const grpNames = (m, exceptId) => m.groups.filter(g => g.id !== exceptId).map(g 
 const forText = (m, b) => b.groups.length ? b.groups.map(id => grpById(m, id)?.name).filter(Boolean).join(', ') : 'All students';
 // A small label after a block's name, e.g. "Senior" or "Prep · LM". Blocks for all students have none.
 const grpShort = name => name.length <= 8 ? name : `${name.slice(0, 7).trim()}…`;
-const gmark = (m, b) => b.groups.length ? `<span class="gmark" aria-hidden="true">${esc(b.groups.map(id => grpById(m, id)).filter(Boolean).map(g => grpShort(g.name)).join(' · '))}</span>` : '';
+const gmark = (m, b) => (b.groups.length ? `<span class="gmark" aria-hidden="true">${esc(b.groups.map(id => grpById(m, id)).filter(Boolean).map(g => grpShort(g.name)).join(' · '))}</span>` : '') + lmark(b);
+// "1 per week", for text; "1/wk", for the label after a block's name.
+const limitText = l => l ? `${l.n} per ${l.per === 'week' ? 'week' : 'two weeks'}` : 'Every meeting';
+const lmark = b => b.limit ? `<span class="gmark lmark" aria-hidden="true">${b.limit.n}/${b.limit.per === 'week' ? 'wk' : '2wk'}</span>` : '';
+const cleanLimit = l => {
+  const n = l && typeof l === 'object' ? within(l.n, [1, LIMIT_MAX]) : null;
+  return n != null && (l.per === 'week' || l.per === 'two') ? { n, per: l.per } : null;
+};
 // Notes are plain text: line breaks are kept, other control characters are dropped.
 const cleanNote = v => typeof v === 'string' ? v.replace(/\r\n?/g, '\n').replace(/\t/g, ' ').replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, '').slice(0, NOTE_MAX).trim() : '';
 // Names sort with their numbers in order, so Period 2 comes before Period 10.
@@ -589,9 +601,12 @@ function lanesFor(it, v) {
 }
 /* acad is class time: every type that counts as class time, added up. It is worked out lane by lane like
    passing time, so a split gives the lowest and highest a student can get, not a sum of each type's lowest.
-   free is time a group has no block because the block then is for other groups. Passing periods stay passing. */
+   free is time a group has no block because the block then is for other groups. Passing periods stay passing.
+   lim holds the blocks each student attends only some of: how many meetings (c) and minutes (m) a student has.
+   They are left out of everything else here, and totals() counts the right number of them at the end. */
+const addLim = (map, id, c, mins) => { const r = map[id] || (map[id] = { c: R(), m: R() }); r.c.lo += c.lo; r.c.hi += c.hi; r.m.lo += mins.lo; r.m.hi += mins.hi; };
 function seqStats(m, items, top, v = null) {
-  const s = { blocks: bag(), cats: bag(), pass: R(), acad: R(), free: R() };
+  const s = { blocks: bag(), cats: bag(), pass: R(), acad: R(), free: R(), lim: bag() };
   items.forEach((it, i) => {
     const g = gapOf(m, it, i, top);
     s.pass.lo += g; s.pass.hi += g;
@@ -600,6 +615,7 @@ function seqStats(m, items, top, v = null) {
       if (!b) return;
       const d = durOf(m, it);
       if (v && !v.open.has(b.id)) { s.free.lo += d; s.free.hi += d; return; }
+      if (b.limit) { addLim(s.lim, b.id, { lo: 1, hi: 1 }, { lo: d, hi: d }); return; }
       addTo(s.blocks, b.id, d, d); addTo(s.cats, b.cat, d, d);
       if (isAcad(m, b)) { s.acad.lo += d; s.acad.hi += d; }
       return;
@@ -623,25 +639,78 @@ function seqStats(m, items, top, v = null) {
     s.acad.hi += Math.max(...L.map(x => x.acad.hi));
     s.free.lo += Math.min(...L.map(x => x.free.lo));
     s.free.hi += Math.max(...L.map(x => x.free.hi));
+    // A lane without the block has none of its meetings.
+    new Set(L.flatMap(x => Object.keys(x.lim))).forEach(id => {
+      const get = k => L.map(x => x.lim[id]?.[k] ?? R());
+      addLim(s.lim, id, { lo: Math.min(...get('c').map(r => r.lo)), hi: Math.max(...get('c').map(r => r.hi)) }, { lo: Math.min(...get('m').map(r => r.lo)), hi: Math.max(...get('m').map(r => r.hi)) });
+    });
   });
   return s;
+}
+/* Counts the meetings of blocks each student attends only some of (block.limit), once the two weeks are added up.
+   Per week: each week counts up to n meetings. Per two weeks: the two weeks together count up to n, so each week
+   is a range (the meetings could fall in either week). Where a student has fewer meetings, all of them count.
+   The counted minutes go to the block, its type and class time; the other meetings are Free time. A meeting is
+   taken to be the block's average length. */
+function applyLimits(m, t) {
+  new Set([...Object.keys(t.w[0].lim), ...Object.keys(t.w[1].lim)]).forEach(id => {
+    const b = blockOf(m, id); if (!b?.limit) return;
+    const n = b.limit.n, cw = [0, 1].map(w => t.w[w].lim[id]?.c ?? R()), all = t.all.lim[id].c;
+    const avg = all.hi ? t.all.lim[id].m.hi / all.hi : b.len;
+    // kept: meetings counted; skip: meetings not attended (Free time). Each is a low-high range.
+    const over = c => ({ lo: Math.max(0, c.lo - n), hi: Math.max(0, c.hi - n) }), sum = (a, b2) => ({ lo: a.lo + b2.lo, hi: a.hi + b2.hi });
+    let keptW, keptAll, skipW, skipAll;
+    if (b.limit.per === 'week') {
+      keptW = cw.map(c => ({ lo: Math.min(c.lo, n), hi: Math.min(c.hi, n) })); keptAll = sum(keptW[0], keptW[1]);
+      skipW = cw.map(over); skipAll = sum(skipW[0], skipW[1]);
+    } else {
+      keptAll = { lo: Math.min(all.lo, n), hi: Math.min(all.hi, n) }; skipAll = over(all);
+      keptW = [0, 1].map(w => ({ lo: Math.max(0, keptAll.lo - cw[1 - w].hi), hi: Math.min(cw[w].hi, n) }));
+      skipW = [0, 1].map(w => ({ lo: Math.max(0, cw[w].lo - keptW[w].hi), hi: Math.max(0, cw[w].hi - keptW[w].lo) }));
+    }
+    const apply = (part, kept, skip) => {
+      if (!part.lim[id]) return;
+      const lo = Math.round(kept.lo * avg), hi = Math.round(kept.hi * avg);
+      addTo(part.blocks, id, lo, hi); addTo(part.cats, b.cat, lo, hi);
+      if (isAcad(m, b)) { part.acad.lo += lo; part.acad.hi += hi; }
+      part.free.lo += Math.round(skip.lo * avg); part.free.hi += Math.round(skip.hi * avg);
+    };
+    apply(t.w[0], keptW[0], skipW[0]); apply(t.w[1], keptW[1], skipW[1]); apply(t.all, keptAll, skipAll);
+  });
+}
+/* A day's class time (d, from the day's stats s and the period totals t). A limited block counts as a range: on the
+   low end the student skips that day's meetings, on the high end attends them. When the limit covers every meeting
+   the student has in the period, every meeting counts. */
+function dayClass(m, s, t, d) {
+  let lo = s.acad.lo, hi = s.acad.hi;
+  for (const id in s.lim) {
+    const b = blockOf(m, id), l = s.lim[id];
+    if (!b?.limit || !isAcad(m, b) || !l.c.hi) continue;
+    const period = (b.limit.per === 'week' ? t.w[d < 7 ? 0 : 1] : t.all).lim[id].c;
+    if (b.limit.n >= period.hi) { lo += l.m.lo; hi += l.m.hi; }
+    else hi += Math.round(Math.min(l.c.hi, b.limit.n) * l.m.hi / l.c.hi);
+  }
+  return { lo, hi };
 }
 const dayStats = (m, d, v = null) => seqStats(m, m.days[d].items, true, v);
 // days: each day's class time, for the day headers.
 function totals(m, v = null) {
-  const part = () => ({ blocks: bag(), cats: bag(), pass: R(), acad: R(), free: R() });
-  const t = { w: [part(), part()], all: part(), days: [] };
+  const part = () => ({ blocks: bag(), cats: bag(), pass: R(), acad: R(), free: R(), lim: bag() });
+  const t = { w: [part(), part()], all: part(), days: [] }, dayS = [];
   m.days.forEach((_, d) => {
     const s = dayStats(m, d, v);
-    t.days.push(s.acad);
+    dayS.push(s);
     for (const tgt of [t.w[d < 7 ? 0 : 1], t.all]) {
       for (const k in s.blocks) addTo(tgt.blocks, k, s.blocks[k].lo, s.blocks[k].hi);
       for (const k in s.cats) addTo(tgt.cats, k, s.cats[k].lo, s.cats[k].hi);
+      for (const k in s.lim) addLim(tgt.lim, k, s.lim[k].c, s.lim[k].m);
       tgt.pass.lo += s.pass.lo; tgt.pass.hi += s.pass.hi;
       tgt.acad.lo += s.acad.lo; tgt.acad.hi += s.acad.hi;
       tgt.free.lo += s.free.lo; tgt.free.hi += s.free.hi;
     }
   });
+  applyLimits(m, t);
+  t.days = dayS.map((s, d) => dayClass(m, s, t, d));
   return t;
 }
 /* ---------- Transitions and runs (pure) ----------
@@ -885,10 +954,10 @@ const num = v => v.toLocaleString('en-US');
 const fmtCount = r => !r ? '0' : r.lo === r.hi ? num(r.lo) : `${num(r.lo)}–${num(r.hi)}`;
 const fmtSpan = v => v >= 60 ? `${Math.floor(v / 60)}h${v % 60 ? ` ${v % 60}m` : ''}` : `${v} min`;
 const runText = r => r.n ? `${r.n} block${r.n > 1 ? 's' : ''} (${fmtSpan(r.span)})` : 'None';
-const TRANS_HELP = 'Each move from one block to the next, including 0-minute passing. Arriving and leaving for the day don\'t count.';
-const RUN_HELP = `The most class-time blocks in a row that any student has. A run ends at a block that isn't class time, or at a gap of ${RUN_BREAK} minutes or more.`;
+const TRANS_HELP = 'Each move from one block to the next, including 0-minute passing. Arriving and leaving for the day don\'t count. Every meeting of a block students attend only some of is counted, since any of them could be one a student attends.';
+const RUN_HELP = `The most class-time blocks in a row that any student has. A run ends at a block that isn't class time, or at a gap of ${RUN_BREAK} minutes or more. Every meeting of a block students attend only some of could be one a student attends, so each can be part of a run.`;
 const RUN_PARTIAL = 'Only some students have a run this long: those in some lanes of a split, or in some groups.';
-const FREE_HELP = 'Time when a student has no block because the block then is for other groups. It isn\'t passing time.';
+const FREE_HELP = 'Time when a student has no block: the block then is for other groups, or is a meeting of a block they attend only some of (like 1 per week). It isn\'t passing time.';
 const unitLabel = () => S.unit === 'hrs' ? 'h:mm' : 'min';
 
 /* ---------- Rendering ---------- */
@@ -987,7 +1056,7 @@ function renderLeft() {
           <button class="tadd" data-act="addBlockOfType" data-type="${esc(g.id)}" title="Add a ${esc(g.name)} block" aria-label="Add a ${esc(g.name)} block">+</button></div>
         ${g.blocks.map(b => `
         <div class="chip${S.sel?.kind === 'block' && S.sel.id === b.id ? ' on' : ''}" style="--h:${b.hue}" ${isAcad(m, b) ? '' : 'data-noncat'}
-          data-pal="${esc(b.id)}" role="button" tabindex="0" aria-label="${esc(b.name)}, ${esc(g.name)}, ${b.len} minutes${b.groups.length ? `, for ${esc(forText(m, b))}` : ''}${b.note ? ', has a note' : ''}">
+          data-pal="${esc(b.id)}" role="button" tabindex="0" aria-label="${esc(b.name)}, ${esc(g.name)}, ${b.len} minutes${b.groups.length ? `, for ${esc(forText(m, b))}` : ''}${b.limit ? `, each student attends ${limitText(b.limit)}` : ''}${b.note ? ', has a note' : ''}">
           <span class="nm"><span class="nt">${esc(b.name)}</span>${gmark(m, b)}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span><span class="ln">${b.len}m${b.len !== g.type.len ? '*' : ''}</span></div>`).join('')}
       </div>`).join('')}</div>
     <div class="btnrow"><button class="btn sm" data-act="addType" ${m.types.length >= MAX.types ? 'disabled' : ''}>Add type</button></div>`;
@@ -1077,7 +1146,7 @@ function seqHTML(m, items, t0, origin, top, d) {
       if (b) {
         const on = isSel(it.id), mins = end - start, changed = it.dur != null && it.dur !== b.len;
         out += `<div class="blk${on ? ' on' : ''}${b.groups.length ? ' forsome' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px" ${isAcad(m, b) ? '' : 'data-noncat'} data-item="${esc(it.id)}" tabindex="0" role="button"
-          aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes${b.groups.length ? `, for ${esc(forText(m, b))}` : ''}${it.note ? ', has a note for this day' : ''}${b.note ? ', has a block note' : ''}">
+          aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes${b.groups.length ? `, for ${esc(forText(m, b))}` : ''}${b.limit ? `, each student attends ${limitText(b.limit)}` : ''}${it.note ? ', has a note for this day' : ''}${b.note ? ', has a block note' : ''}">
           <span class="rz t" data-rz="t"></span>
           <span class="nm"><span class="nt">${esc(b.name)}</span>${gmark(m, b)}${it.note ? '<span class="nmark">✎</span>' : ''}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>
           ${h >= 30 ? `<span class="tm">${clock(start)}–${clock(end)}</span>` : ''}
@@ -1129,6 +1198,7 @@ function ledgerHTML() {
     <tr class="line"><td><span class="help" title="${esc(RUN_HELP)}">Longest run of class blocks</span></td><td class="n" colspan="3">${runText(F.run)}${F.run.partial ? ` <span class="lanemark" title="${esc(RUN_PARTIAL)}" aria-label="only some lanes">◐</span>` : ''}</td></tr>
     </tbody></table>
     ${hasRange(t) ? `<p class="hint">A range means the total depends on which lane${tagged ? ' or group' : ''} a student is in. Targets use the lower number.</p>` : ''}
+    ${m.blocks.some(b => b.limit) ? '<p class="hint">A block marked like 1/wk counts only that many meetings per student (per week, or per two weeks for 1/2wk). Its other meetings are Free time.</p>' : ''}
     ${partial.size ? `<p class="hint">${mark} ${G.all.part.size ? 'In only some lanes of a split, or for only some groups. That block\'s total and target count only the students who have it' : 'In only some lanes of a split. That block\'s total and target count only the students in the lanes that have it'}, so it can't be added to the other blocks to get the type total.</p>` : ''}
   `, '', ' id="ledger"');
 }
@@ -1164,6 +1234,7 @@ function blockInspector(m, b) {
       <div class="field"><label for="bLen">Default length (min)</label><input class="txt num" id="bLen" type="number" min="5" max="${LIM.len[1]}" step="5" value="${b.len}" data-f="bLen"></div>
     </div>
     ${whoAttendsHTML(m, b)}
+    ${limitHTML(m, b)}
     <div class="field"><label for="bTarget">Target, two-week total (min)</label><input class="txt num" id="bTarget" type="number" min="0" placeholder="None" value="${b.target ?? ''}" data-f="bTarget"></div>
     <div class="field"><label for="bNote">Note</label><textarea class="txt note-in" id="bNote" maxlength="${NOTE_MAX}" rows="3" placeholder="Shown when you hover over this block" data-f="bNote">${esc(b.note)}</textarea></div>
     <div class="field"><span class="lab">Color</span><div class="btnrow">${HUES.map(h => `<button class="chip" style="--h:${h};width:22px;height:22px;padding:0;cursor:pointer" data-act="hue" data-h="${h}" aria-label="Color ${h}"${h === b.hue ? ' aria-pressed="true"' : ''}>${h === b.hue ? '<span style="margin:auto">✓</span>' : ''}</button>`).join('')}</div></div>
@@ -1182,6 +1253,24 @@ function whoAttendsHTML(m, b) {
     <div class="checks"><label class="check"><input type="checkbox" id="bAll" data-f="bAll"${b.groups.length ? '' : ' checked'}> All students</label>
       <span class="sep"></span>${plain.map(box).join('')}${combos.length ? `<span class="sep"></span>${combos.map(box).join('')}` : ''}</div>
     <p class="hint">${b.groups.length ? `For ${esc(forText(m, b))} only. Other students skip it: that time counts as Free time for them.` : 'Every student attends this block.'}</p></div>`;
+}
+/* Each student attends: every meeting, or only some (a number per week or per two weeks). The hint counts the
+   meetings on one student's schedule (for a block tagged for groups, a student in the first group that has it). */
+function limitHTML(m, b) {
+  const l = b.limit, n = placements(m, b.id).length;
+  const g = b.groups.length ? m.groups.find(x => !isCombo(x) && grpView(m, x.id).open.has(b.id)) : null;
+  let hint = `Choose Only some if each student attends just some of these meetings, like one HD class a week.`;
+  if (l && n) {
+    const tt = totals(m, g ? grpView(m, g.id) : null), c = w => tt.w[w].lim[b.id]?.c ?? R(), all = tt.all.lim[b.id]?.c ?? R();
+    const have = l.per === 'week' ? `${fmtCount(c(0))} in Week 1 and ${fmtCount(c(1))} in Week 2` : `${fmtCount(all)} over two weeks`;
+    const fewer = l.per === 'week' ? Math.min(c(0).lo, c(1).lo) < l.n : all.lo < l.n;
+    hint = `${g ? `A ${esc(g.name)} student` : 'A student'} has ${have} (${n} placement${n > 1 ? 's' : ''} across lanes). Totals count ${limitText(l)}${fewer ? `, or all of them where there are fewer` : ''}; the other meetings are Free time.`;
+  } else if (l) hint = 'Not placed yet.';
+  return `<div class="field"><label for="bLimOn">Each student attends</label>
+    <div class="inline"><select class="txt" id="bLimOn" data-f="bLimOn" style="width:auto"><option value=""${l ? '' : ' selected'}>Every meeting</option><option value="some"${l ? ' selected' : ''}>Only some</option></select>
+      ${l ? `<input class="txt num" id="bLimN" type="number" min="1" max="${LIMIT_MAX}" step="1" value="${l.n}" data-f="bLimN" style="width:62px" aria-label="Meetings each student attends">
+      <select class="txt" id="bLimPer" data-f="bLimPer" style="width:auto" aria-label="Per"><option value="week"${l.per === 'week' ? ' selected' : ''}>per week</option><option value="two"${l.per === 'two' ? ' selected' : ''}>per two weeks</option></select>` : ''}</div>
+    <p class="hint">${hint}</p></div>`;
 }
 function groupInspector(m, g) {
   if (!g) return '';
@@ -1740,6 +1829,13 @@ const fields = {
   tAcad(v, el) { const on = el.checked; commit(m => { const t = typeById(m, S.sel.id); if (t) t.academic = on; }); },
   tNote(v) { const note = cleanNote(v), id = S.sel.id; commit(m => { const t = typeById(m, id); if (t) t.note = note; }); },
   bNote(v) { const note = cleanNote(v), id = S.sel.id; commit(m => { const b = blockOf(m, id); if (b) b.note = note; }); },
+  bLimOn(v) { const id = S.sel.id; commit(m => { const b = blockOf(m, id); if (b) b.limit = v ? (b.limit ?? { n: 1, per: 'week' }) : null; }); },
+  bLimN(v) {
+    const n = within(v, [1, LIMIT_MAX]);
+    if (n == null) { toast(`Enter a whole number from 1 to ${LIMIT_MAX}.`); return queueRender(); }
+    const id = S.sel.id; commit(m => { const b = blockOf(m, id); if (b?.limit) b.limit.n = n; });
+  },
+  bLimPer(v) { const id = S.sel.id; commit(m => { const b = blockOf(m, id); if (b?.limit && (v === 'week' || v === 'two')) b.limit.per = v; }); },
   bAll(v, el) {
     const id = S.sel.id;
     if (el.checked) commit(m => { const b = blockOf(m, id); if (b) b.groups = []; });
@@ -2038,7 +2134,8 @@ function tipHTML(el) {
   const t = typeOf(m, b.cat);
   return `<div class="hc-title"><span class="dot" style="--h:${b.hue}"></span>${esc(b.name)}</div>
     <div class="hc-meta">${esc(t.name)}${t.academic ? '' : ' (not class time)'} · ${meta}</div>
-    ${b.groups.length ? `<div class="hc-meta">For ${esc(forText(m, b))}</div>` : ''}${own}${note('Block note', b.note)}${note(`${t.name} note`, t.note)}`;
+    ${b.groups.length ? `<div class="hc-meta">For ${esc(forText(m, b))}</div>` : ''}
+    ${b.limit ? `<div class="hc-meta">Each student attends ${esc(limitText(b.limit))}</div>` : ''}${own}${note('Block note', b.note)}${note(`${t.name} note`, t.note)}`;
 }
 function showTip(el) {
   hcTimer = null;
@@ -2174,14 +2271,14 @@ function scheduleCSV(m) {
   return csv(rows);
 }
 function totalsCSV(m) {
-  const G = grpResults(m), t = G.all.t, F = G.all.f, rows = [['Item', 'Type', 'For', 'Week 1 min', 'Week 2 min', 'Two-week min', 'Two-week target', 'Status', 'Block note', 'Type note']];
+  const G = grpResults(m), t = G.all.t, F = G.all.f, rows = [['Item', 'Type', 'For', 'Attends', 'Week 1 min', 'Week 2 min', 'Two-week min', 'Two-week target', 'Status', 'Block note', 'Type note']];
   const st = s => !s ? '' : s.met ? 'Met' : `${s.short} short`;
-  rows.push(['All class time', 'Class time', '', plainR(t.w[0].acad), plainR(t.w[1].acad), plainR(t.all.acad), m.classTarget ?? '', st(targetState(m.classTarget, t.all.acad))]);
-  sortedBlocks(m).forEach(b => rows.push([b.name, typeName(m, b.cat), forText(m, b), plainR(t.w[0].blocks[b.id]), plainR(t.w[1].blocks[b.id]), plainR(t.all.blocks[b.id]), b.target ?? '', st(targetState(b.target, t.all.blocks[b.id])), b.note, typeOf(m, b.cat).note]));
-  rows.push(['Passing', 'Passing', '', plainR(t.w[0].pass), plainR(t.w[1].pass), plainR(t.all.pass), '', '']);
-  if (t.all.free.hi) rows.push(['Free time', 'Free', '', plainR(t.w[0].free), plainR(t.w[1].free), plainR(t.all.free), '', '']);
-  rows.push(['Transitions (count, not minutes)', 'Transitions', '', plainR(F.trans.w[0]), plainR(F.trans.w[1]), plainR(F.trans.all), '', '']);
-  rows.push(['Longest run of class blocks', 'Run', '', '', '', F.run.n ? `${F.run.n} blocks, ${F.run.span} min${F.run.partial ? ' (some lanes only)' : ''}` : 'None', '', '']);
+  rows.push(['All class time', 'Class time', '', '', plainR(t.w[0].acad), plainR(t.w[1].acad), plainR(t.all.acad), m.classTarget ?? '', st(targetState(m.classTarget, t.all.acad))]);
+  sortedBlocks(m).forEach(b => rows.push([b.name, typeName(m, b.cat), forText(m, b), limitText(b.limit), plainR(t.w[0].blocks[b.id]), plainR(t.w[1].blocks[b.id]), plainR(t.all.blocks[b.id]), b.target ?? '', st(targetState(b.target, t.all.blocks[b.id])), b.note, typeOf(m, b.cat).note]));
+  rows.push(['Passing', 'Passing', '', '', plainR(t.w[0].pass), plainR(t.w[1].pass), plainR(t.all.pass), '', '']);
+  if (t.all.free.hi) rows.push(['Free time', 'Free', '', '', plainR(t.w[0].free), plainR(t.w[1].free), plainR(t.all.free), '', '']);
+  rows.push(['Transitions (count, not minutes)', 'Transitions', '', '', plainR(F.trans.w[0]), plainR(F.trans.w[1]), plainR(F.trans.all), '', '']);
+  rows.push(['Longest run of class blocks', 'Run', '', '', '', '', F.run.n ? `${F.run.n} blocks, ${F.run.span} min${F.run.partial ? ' (some lanes only)' : ''}` : 'None', '', '']);
   return csv(rows);
 }
 // Columns as on the Groups tab. Class time and transitions are given per week too; everything else is two-week.
@@ -2353,7 +2450,7 @@ function cleanModel(raw, fromStorage = false) {
     return {
       id, name: String(b.name || `Block ${i + 1}`).slice(0, 60), cat: typeMap.get(String(b.cat)) ?? 'other',
       len: fit(b.len, LIM.len, 50), hue: HUES.includes(b.hue) ? b.hue : HUES[i % HUES.length], target: b.target == null ? null : posInt(b.target),
-      note: cleanNote(b.note), groups: tagsOf(b.groups),
+      note: cleanNote(b.note), groups: tagsOf(b.groups), limit: cleanLimit(b.limit),
     };
   });
   const opt = (v, lim) => v == null ? null : fit(v, lim, lim[0]);
