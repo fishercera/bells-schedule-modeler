@@ -426,7 +426,7 @@ const FILE_VERSION = 4;
    per 'week' or 'two' (two weeks), or null for every meeting. Totals count n meetings; the rest are Free time. */
 const LIMIT_MAX = 50;
 const HUES = [212, 158, 32, 340, 268, 186, 95, 12, 240, 52, 300, 130];
-const SNAP = 5, MIN_LEN = 5, MAX_LANES = 4;
+const SNAP = 5, MIN_LEN = 5, MAX_LANES = 8;
 /* Allowed ranges, in minutes. Every way a number gets in (typing, dragging, import, saved data)
    goes through these, so no value can make the calendar too large to draw. */
 const LIM = { len: [MIN_LEN, 600], pass: [0, 60], gap: [0, 480], start: [0, 1439] };
@@ -880,6 +880,10 @@ function shortfalls(m, t = grpResults(m).all.t, onlyHad = false) {
   m.blocks.forEach(b => { if (onlyHad && !t.all.blocks[b.id]) return; const s = targetState(b.target, t.all.blocks[b.id]); if (s && !s.met) out.push(b.name); });
   return out;
 }
+/* The most lanes any split on day d has (1 with no split). A day with more than 4 lanes gets a wider column, on
+   screen and in the PDF, so each lane keeps about the room it has in a 4-lane split. */
+const dayLanes = (m, d) => Math.max(1, ...m.days[d].items.filter(x => x.t === 's').map(x => x.lanes.length));
+const dayWeight = (m, d) => Math.max(1, dayLanes(m, d) / 4);
 function gridRange(m) {
   let lo = 450, hi = 930;
   m.days.forEach(d => { if (d.items.length) { const L = layoutSeq(m, d.items, d.start, true); lo = Math.min(lo, d.start); hi = Math.max(hi, L[L.length - 1].end); } });
@@ -1127,7 +1131,7 @@ function renderGrid(c) {
 function weekHTML(m, w, lo, hi, t) {
   const k = ppm(), H = (hi - lo) * k, hourPx = 60 * k;
   const ds = [0, 1, 2, 3, 4, 5, 6].map(i => w * 7 + i);
-  const cols = ds.map((d, i) => (!m.days[d].items.length && (i === 0 || i === 6)) ? 'minmax(62px,.5fr)' : 'minmax(108px,1fr)').join(' ');
+  const cols = ds.map((d, i) => (!m.days[d].items.length && (i === 0 || i === 6)) ? 'minmax(62px,.5fr)' : `minmax(${Math.max(108, dayLanes(m, d) * 30)}px,${dayWeight(m, d)}fr)`).join(' ');
   const hours = []; for (let h = lo; h <= hi; h += 60) if (h < hi) hours.push(`<span style="top:${(h - lo) * k}px">${h === lo ? '' : ''}${clock(h).replace(':00', '')}${h < 720 ? 'a' : 'p'}</span>`);
   const lines = `background-image:linear-gradient(to bottom,var(--rule) 1px,transparent 1px),linear-gradient(to bottom,transparent ${hourPx / 2 - .5}px,var(--sunk) ${hourPx / 2 - .5}px,var(--sunk) ${hourPx / 2 + .5}px,transparent ${hourPx / 2 + .5}px);background-size:100% ${hourPx}px;`;
   const heads = ds.map(d => {
@@ -2467,7 +2471,7 @@ function pdfWeek(doc, m, w, lo, hi, t, made) {
   const headTop = mg + 40, dayHead = 30, top = headTop + dayHead, bottom = H - mg - 14, left = mg + axis, right = W - mg;
   const k = (bottom - top) / (hi - lo), Y = v => top + (v - lo) * k;
   const ds = [0, 1, 2, 3, 4, 5, 6].map(i => w * 7 + i);
-  const weights = ds.map((d, i) => (!m.days[d].items.length && (i === 0 || i === 6)) ? 0.5 : 1), total = weights.reduce((a, b) => a + b, 0);
+  const weights = ds.map((d, i) => (!m.days[d].items.length && (i === 0 || i === 6)) ? 0.5 : dayWeight(m, d)), total = weights.reduce((a, b) => a + b, 0);
   const xs = [left]; weights.forEach(v => xs.push(xs[xs.length - 1] + (right - left) * v / total));
   doc.setDrawColor(...PC.rule); doc.setLineWidth(0.5);
   for (let h = lo; h <= hi; h += 60) {

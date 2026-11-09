@@ -21,6 +21,8 @@ The school models are export version 1. The app now exports version 4. Version 2
 
 ## Splits
 
+A split can have up to 8 lanes. A day with more than 4 lanes in a split gets a wider column (about 30 px per lane on screen, and a share of the PDF page in proportion to its lanes), so the week sheet may scroll sideways. Exported files with more than 4 lanes lose the extra lanes if imported into an older copy of the app.
+
 Click a split's ≡ tab to open **Split options**. Its lane list shows each lane's blocks, left to right. **◀** and **▶** move a lane left or right, for example to make Lane 3 into Lane 2. Lane order only changes how the split is drawn (on screen and in the PDF): lanes are alternatives, so no total changes. Each row also has **Keep only** and, with more than two lanes, **Remove**.
 
 **Matching blocks are drawn once.** When neighboring lanes hold the same block at the same start and end times (and the same note for that day, or none), the calendar and the PDF draw it as one wide block across those lanes. This is display only: each lane still has its own placement, so totals are counted exactly as before. Clicking (or dragging) a merged block picks the copy in the lane under the pointer and shows the copies separately again while it's selected. Changing one copy's time or length makes them stop matching, so they're drawn separately.
