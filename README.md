@@ -19,6 +19,10 @@ The school models are export version 1. The app now exports version 4. Version 2
 - each model gets the four default student groups, with every block for all students;
 - every block counts every meeting.
 
+## Splits
+
+Click a split's ≡ tab to open **Split options**. Its lane list shows each lane's blocks, left to right. **◀** and **▶** move a lane left or right, for example to make Lane 3 into Lane 2. Lane order only changes how the split is drawn (on screen and in the PDF): lanes are alternatives, so no total changes. Each row also has **Keep only** and, with more than two lanes, **Remove**.
+
 ## Types
 
 Every model has three fixed types, **Class**, **Lunch** and **Other**, which can't be renamed or deleted. A new model starts with only those three. Every other type, including Advisory and Break in older models, belongs to that model and can be renamed or deleted; deleting one moves its blocks to a type you pick (Other by default).

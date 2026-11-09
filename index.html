@@ -100,6 +100,12 @@ select.pick { width: auto; max-width: 260px; font-weight: 600; }
 ::placeholder { color: var(--muted); opacity: .75; }
 .warnline { color: var(--warn); font-weight: 600; }
 .btnrow { display: flex; flex-wrap: wrap; gap: 5px; }
+.lanelist { display: flex; flex-direction: column; gap: 4px; }
+.lanerow { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding-top: 5px; border-top: 1px solid var(--rule); }
+.lanehead { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.lanenum { font-size: 12px; font-weight: 600; white-space: nowrap; flex: none; }
+.lanesum { flex: 1 1 0; min-width: 0; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lanesum.none { font-style: italic; }
 
 /* Folding: each panel folds to its title bar, each side column to a narrow strip */
 .colbar { display: flex; justify-content: flex-end; }
@@ -1388,9 +1394,18 @@ function splitInspector(m, f) {
       <button class="btn sm" data-act="dupItem">Duplicate</button>
       <button class="btn sm" data-act="asRun">Copy to other days…</button>
       <button class="btn sm" data-act="addLane" ${n >= MAX_LANES ? 'disabled' : ''}>Add lane</button>
-      ${f.it.lanes.map((_, i) => `<button class="btn sm" data-act="keepLane" data-l="${i}">Keep only lane ${i + 1}</button>`).join('')}
-      ${n > 2 ? f.it.lanes.map((_, i) => `<button class="btn sm" data-act="dropLane" data-l="${i}">Remove lane ${i + 1}</button>`).join('') : ''}
-      <button class="btn sm danger" data-act="delItem">Remove split</button></div>`);
+      <button class="btn sm danger" data-act="delItem">Remove split</button></div>
+    <div class="lanelist" role="list" aria-label="Lanes, left to right">
+      ${f.it.lanes.map((l, i) => {
+        const names = l.map(x => blockOf(m, x.blockId)?.name).filter(Boolean).join(', ');
+        return `<div class="lanerow" role="listitem">
+        <div class="lanehead"><span class="lanenum">Lane ${i + 1}</span>
+        <span class="lanesum${names ? '' : ' none'}" title="${esc(names)}">${names ? esc(names) : 'empty'}</span></div>
+        <div class="btnrow"><button class="btn sm" data-act="moveLane" data-l="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move lane ${i + 1} left" title="Move left">◀</button>
+        <button class="btn sm" data-act="moveLane" data-l="${i}" data-dir="1" ${i === n - 1 ? 'disabled' : ''} aria-label="Move lane ${i + 1} right" title="Move right">▶</button>
+        <button class="btn sm" data-act="keepLane" data-l="${i}" aria-label="Keep only lane ${i + 1}">Keep only</button>
+        ${n > 2 ? `<button class="btn sm" data-act="dropLane" data-l="${i}" aria-label="Remove lane ${i + 1}">Remove</button>` : ''}</div></div>`;
+      }).join('')}</div>`);
 }
 function renderLengths(c) {
   const m = M(), t = grpResults(m).all.t, days = [...Array(14).keys()];
@@ -1789,6 +1804,14 @@ const actions = {
   },
   selSplit() { const f = findItem(M(), S.sel.id); S.sel = { kind: 'item', id: f.split.id }; render(); },
   addLane() { commit(m => { findItem(m, S.sel.id).it.lanes.push([]); }); },
+  // Lane order is only how the split is drawn: lanes are alternatives, so no total changes.
+  moveLane(el) {
+    commit(m => {
+      const ls = findItem(m, S.sel.id).it.lanes, i = +el.dataset.l, j = i + +el.dataset.dir;
+      if (j < 0 || j >= ls.length) return;
+      [ls[i], ls[j]] = [ls[j], ls[i]];
+    });
+  },
   dropLane(el) { commit(m => { findItem(m, S.sel.id).it.lanes.splice(+el.dataset.l, 1); }); },
   keepLane(el) {
     const id = S.sel.id, l = +el.dataset.l; S.sel = null;
