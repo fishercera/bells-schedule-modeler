@@ -239,6 +239,7 @@ select.pick { width: auto; max-width: 260px; font-weight: 600; }
 .lane { position: relative; flex: 1 1 0; min-width: 0; border-left: 1px dashed var(--rule-strong); }
 .lane:first-of-type { border-left: 0; }
 .lane .blk { left: 1px; right: 1px; padding: 1px 3px; }
+.blk.merged { right: auto; padding: 1px 3px; }
 .lane .gap { left: 3px; right: 3px; }
 .splittab {
   position: absolute; top: -1px; right: -1px; z-index: 4; width: 18px; height: 14px; padding: 0; border: 0; border-radius: 0 4px 0 4px;
@@ -1151,7 +1152,44 @@ function weekHTML(m, w, lo, hi, t) {
     </div></div></section>`;
 }
 const isSel = id => S.sel?.kind === 'item' ? S.sel.id === id : S.sel?.kind === 'run' && S.sel.ids.includes(id);
-function seqHTML(m, items, t0, origin, top, d) {
+/* Display only: where neighboring lanes of a split hold the same block at the same times (and the same note for
+   that day, or none), it is drawn once across those lanes. Each lane keeps its own placement, so no total changes.
+   keep(ids) says whether a group may be drawn merged; on screen a group with a selected placement is drawn apart.
+   Gives [{ ids, lane, span, it, start, end }]: the first lane, how many lanes, and the first lane's placement. */
+function laneMerges(m, split, t0, keep = () => true) {
+  const L = split.lanes.map(l => layoutSeq(m, l, t0, false).filter(x => x.it.t === 'b' && blockOf(m, x.it.blockId)));
+  const used = new Set(), out = [];
+  const same = (a, b) => a.it.blockId === b.it.blockId && a.start === b.start && a.end === b.end && (a.it.note ?? '') === (b.it.note ?? '');
+  L.forEach((lane, i) => lane.forEach(x => {
+    if (used.has(x.it.id)) return;
+    const chain = [x];
+    for (let j = i + 1; j < L.length; j++) {
+      const y = L[j].find(z => !used.has(z.it.id) && same(x, z));
+      if (!y) break;
+      chain.push(y);
+    }
+    const ids = chain.map(c => c.it.id);
+    if (chain.length < 2 || !keep(ids)) return;
+    ids.forEach(id => used.add(id));
+    out.push({ ids, lane: i, span: chain.length, it: x.it, start: x.start, end: x.end });
+  }));
+  return out;
+}
+// One block on the calendar. attrs adds attributes, such as a merged block's lanes.
+function blkHTML(m, it, start, end, origin, k, attrs = '', style = '') {
+  const b = blockOf(m, it.blockId);
+  if (!b) return '';
+  const top_ = (start - origin) * k, h = (end - start) * k;
+  const on = isSel(it.id), mins = end - start, changed = it.dur != null && it.dur !== b.len;
+  return `<div class="blk${on ? ' on' : ''}${b.groups.length ? ' forsome' : ''}${attrs ? ' merged' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px;${style}" ${isAcad(m, b) ? '' : 'data-noncat'} data-item="${esc(it.id)}" ${attrs} tabindex="0" role="button"
+          aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes${b.groups.length ? `, for ${esc(forText(m, b))}` : ''}${b.limit ? `, each student attends ${limitText(b.limit)}` : ''}${it.note ? ', has a note for this day' : ''}${b.note ? ', has a block note' : ''}">
+          <span class="rz t" data-rz="t"></span>
+          <span class="nm"><span class="nt">${esc(b.name)}</span>${gmark(m, b)}${it.note ? '<span class="nmark">✎</span>' : ''}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>
+          ${h >= 30 ? `<span class="tm">${clock(start)}–${clock(end)}</span>` : ''}
+          ${h >= 42 ? `<span class="tm">${changed ? `<span class="mod">${mins}m*</span>` : `${mins}m`}</span>` : ''}
+          <span class="rz b" data-rz="b"></span></div>`;
+}
+function seqHTML(m, items, t0, origin, top, d, skip = null) {
   const k = ppm();
   return layoutSeq(m, items, t0, top).map(({ it, gap, start, end }, i) => {
     let out = '';
@@ -1162,22 +1200,16 @@ function seqHTML(m, items, t0, origin, top, d) {
     }
     const top_ = (start - origin) * k, h = (end - start) * k;
     if (it.t === 's') {
-      const on = isSel(it.id);
+      const on = isSel(it.id), n = it.lanes.length;
+      // A merged group with a selected placement is drawn apart, so the selected one is visible on its own.
+      const merges = laneMerges(m, it, start, ids => !ids.some(id => isSel(id) || (P?.kind === 'drag' && !P.pending && P.ids.includes(id)))), hide = new Set(merges.flatMap(g => g.ids));
       out += `<div class="split${on ? ' on' : ''}" data-split="${esc(it.id)}" style="top:${top_}px;height:${h}px">
         <button class="splittab" data-item="${esc(it.id)}" title="Split section: drag to move, Ctrl+drag to copy, click for options">≡</button>
-        ${it.lanes.map((l, li) => `<div class="lane" data-lane="${esc(it.id)}:${li}">${seqHTML(m, l, start, start, false, d)}</div>`).join('')}</div>`;
-    } else {
-      const b = blockOf(m, it.blockId);
-      if (b) {
-        const on = isSel(it.id), mins = end - start, changed = it.dur != null && it.dur !== b.len;
-        out += `<div class="blk${on ? ' on' : ''}${b.groups.length ? ' forsome' : ''}" style="--h:${b.hue};top:${top_}px;height:${h}px" ${isAcad(m, b) ? '' : 'data-noncat'} data-item="${esc(it.id)}" tabindex="0" role="button"
-          aria-label="${esc(b.name)}, ${clock(start)} to ${clock(end)}, ${mins} minutes${b.groups.length ? `, for ${esc(forText(m, b))}` : ''}${b.limit ? `, each student attends ${limitText(b.limit)}` : ''}${it.note ? ', has a note for this day' : ''}${b.note ? ', has a block note' : ''}">
-          <span class="rz t" data-rz="t"></span>
-          <span class="nm"><span class="nt">${esc(b.name)}</span>${gmark(m, b)}${it.note ? '<span class="nmark">✎</span>' : ''}${b.note ? '<span class="nmark">ⓘ</span>' : ''}</span>
-          ${h >= 30 ? `<span class="tm">${clock(start)}–${clock(end)}</span>` : ''}
-          ${h >= 42 ? `<span class="tm">${changed ? `<span class="mod">${mins}m*</span>` : `${mins}m`}</span>` : ''}
-          <span class="rz b" data-rz="b"></span></div>`;
-      }
+        ${it.lanes.map((l, li) => `<div class="lane" data-lane="${esc(it.id)}:${li}">${seqHTML(m, l, start, start, false, d, hide)}</div>`).join('')}
+        ${merges.map(g => blkHTML(m, g.it, g.start, g.end, start, k, `data-merge="${esc(g.ids.join(' '))}" data-lanes="${g.lane + 1}–${g.lane + g.span}"`,
+          `left:calc(${g.lane} * 100% / ${n} + 1px);width:calc(${g.span} * 100% / ${n} - 2px)`)).join('')}</div>`;
+    } else if (!skip?.has(it.id)) {
+      out += blkHTML(m, it, start, end, origin, k);
     }
     return out;
   }).join('');
@@ -1990,14 +2022,21 @@ document.addEventListener('keydown', e => {
 
 /* ---------- Dragging and resizing ---------- */
 let P = null;
+// A block drawn across several lanes stands for one placement per lane: the one under the pointer is used.
+function pickMerged(el, x) {
+  const ids = el.dataset.merge?.split(' ');
+  if (!ids) return el.dataset.item;
+  const r = el.getBoundingClientRect();
+  return ids[clamp(Math.floor((x - r.left) / (r.width / ids.length)), 0, ids.length - 1)];
+}
 const ghost = $('#ghost'), dropline = $('#dropline');
 document.addEventListener('pointerdown', e => {
   if (e.button !== 0 || e.target.closest('dialog')) return;
   const rz = e.target.closest('[data-rz]'), gapEl = e.target.closest('[data-gapfor]');
   const itEl = e.target.closest('[data-item]'), pal = e.target.closest('[data-pal]');
-  const m = M();
+  const m = M(), itId = itEl ? pickMerged(itEl, e.clientX) : null;
   if (rz && itEl) {
-    const f = findItem(m, itEl.dataset.item);
+    const f = findItem(m, itId);
     const t0 = f.top ? m.days[f.d].start : layoutFor(m, f.split, f.d).start;
     P = { kind: 'rz', edge: rz.dataset.rz, id: f.it.id, y0: e.clientY, dur: durOf(m, f.it), gap: layoutSeq(m, f.seq, t0, f.top)[f.idx].gap, dayStart: m.days[f.d].start, snap: snapshot() };
   } else if (gapEl) {
@@ -2006,7 +2045,7 @@ document.addEventListener('pointerdown', e => {
     P = { kind: 'gap', id: f.it.id, y0: e.clientY, gap: layoutSeq(m, f.seq, t0, f.top)[f.idx].gap, snap: snapshot() };
   } else if (itEl || pal) {
     if (e.pointerType === 'touch') return; // touch scrolls; blocks are edited from the side panel
-    P = { kind: 'drag', pending: true, x0: e.clientX, y0: e.clientY, id: itEl?.dataset.item, pal: pal?.dataset.pal, shift: e.shiftKey, ids: [] };
+    P = { kind: 'drag', pending: true, x0: e.clientX, y0: e.clientY, id: itId, pal: pal?.dataset.pal, shift: e.shiftKey, ids: [] };
     if (itEl) {
       // Dragging any item of a selected run drags the whole run.
       const run = S.sel?.kind === 'run' && S.sel.ids.length > 1 && S.sel.ids.includes(P.id) ? runInfo(m, S.sel) : null;
@@ -2053,6 +2092,8 @@ function startDrag() {
     label = fs.length > 1 ? `${fs.length} items` : f.it.t === 's' ? 'Split section' : blockOf(m, f.it.blockId).name;
     // A split can't go inside another split's lane.
     P.isSplit = fs.some(x => x.it.t === 's');
+    // A dragged placement drawn merged with other lanes is drawn apart again, so only it fades.
+    if (P.ids.some(id => document.querySelector(`[data-merge~="${CSS.escape(id)}"]`))) renderCenter();
     fs.forEach(x => itemEl(x.it.id)?.classList.add('lift'));
   }
   P.label = esc(label); ghost.hidden = false;
@@ -2168,7 +2209,7 @@ function tipHTML(el) {
     const f = findItem(m, el.dataset.item); if (!f || f.it.t !== 'b') return '';
     b = blockOf(m, f.it.blockId); if (!b) return '';
     const L = layoutSeq(m, f.seq, f.top ? m.days[f.d].start : layoutFor(m, f.split, f.d).start, f.top)[f.idx], mins = L.end - L.start;
-    meta = `${esc(dayName(f.d))}${f.top ? '' : `, lane ${f.lane + 1}`} · ${clock(L.start)}–${clock(L.end)} · ${mins} min${mins !== b.len ? ` (default ${b.len})` : ''}`;
+    meta = `${esc(dayName(f.d))}${f.top ? '' : el.dataset.lanes ? `, lanes ${esc(el.dataset.lanes)}` : `, lane ${f.lane + 1}`} ·${clock(L.start)}–${clock(L.end)} · ${mins} min${mins !== b.len ? ` (default ${b.len})` : ''}`;
     own = note(`${dayName(f.d)} note`, f.it.note);
   } else {
     b = blockOf(m, el.dataset.pal || el.dataset.tipblock); if (!b) return '';
@@ -2453,19 +2494,26 @@ function pdfWeek(doc, m, w, lo, hi, t, made) {
   doc.text(`Page ${w + 1} of 2`, W - mg, H - mg + 4, { baseline: 'top', align: 'right' });
 }
 // A day, or one lane of a split, from start time t0 in a column at x of width cw.
-function pdfSeq(doc, m, items, t0, x, cw, top, Y, fit, set) {
+function pdfSeq(doc, m, items, t0, x, cw, top, Y, fit, set, skip = null) {
   layoutSeq(m, items, t0, top).forEach(({ it, start, end }) => {
     const y = Y(start), h = Y(end) - y;
     if (it.t === 's') {
       const sx = x + 1.5, sw = cw - 3, lw = sw / it.lanes.length;
+      // Matching blocks in neighboring lanes are drawn once across them, as on screen.
+      const merges = laneMerges(m, it, start), hide = new Set(merges.flatMap(g => g.ids));
       doc.setFillColor(...PC.sunk); doc.setDrawColor(...PC.strong); doc.setLineWidth(0.7); doc.roundedRect(sx, y, sw, h, 2, 2, 'FD');
       it.lanes.forEach((lane, li) => {
         const lx = sx + li * lw;
         if (li) { doc.setLineDashPattern([1.5, 1.5], 0); doc.setLineWidth(0.4); doc.line(lx, y, lx, y + h); doc.setLineDashPattern([], 0); }
-        pdfSeq(doc, m, lane, start, lx, lw, false, Y, fit, set);
+        pdfSeq(doc, m, lane, start, lx, lw, false, Y, fit, set, hide);
+      });
+      merges.forEach(g => {
+        const gy = Y(g.start);
+        pdfBlock(doc, m, blockOf(m, g.it.blockId), g.start, g.end, sx + g.lane * lw + 1, gy, g.span * lw - 2, Y(g.end) - gy, fit, set);
       });
       return;
     }
+    if (skip?.has(it.id)) return;
     const b = blockOf(m, it.blockId);
     if (b) pdfBlock(doc, m, b, start, end, top ? x + 2 : x + 1, y, top ? cw - 4 : cw - 2, h, fit, set);
   });
