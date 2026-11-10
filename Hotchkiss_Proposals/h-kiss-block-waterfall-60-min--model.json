@@ -1,0 +1,1549 @@
+{
+ "app": "bell-schedule-modeler",
+ "version": 4,
+ "models": [
+  {
+   "id": "x2pgrqhkl",
+   "name": "H'kiss Block Waterfall (60-Min)",
+   "passing": 5,
+   "defaultStart": 480,
+   "classTarget": null,
+   "types": [
+    {
+     "id": "class",
+     "name": "Class",
+     "len": 60,
+     "academic": true,
+     "note": ""
+    },
+    {
+     "id": "lunch",
+     "name": "Lunch",
+     "len": 50,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "x7qq04bqt",
+     "name": "Break",
+     "len": 10,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "other",
+     "name": "Other",
+     "len": 45,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "xudownuyn",
+     "name": "Co-curricular",
+     "len": 120,
+     "academic": false,
+     "note": ""
+    }
+   ],
+   "groups": [
+    {
+     "id": "x3xaubleb",
+     "name": "Prep",
+     "grade": true
+    },
+    {
+     "id": "xcq3wjx53",
+     "name": "LM",
+     "grade": true
+    },
+    {
+     "id": "xbm1qd4g4",
+     "name": "UM",
+     "grade": true
+    },
+    {
+     "id": "xbkzarcyc",
+     "name": "Senior",
+     "grade": true
+    },
+    {
+     "id": "x70xq3fke",
+     "name": "Faculty",
+     "grade": false
+    }
+   ],
+   "blocks": [
+    {
+     "id": "x3r2zkt39",
+     "name": "Block 1",
+     "cat": "class",
+     "len": 60,
+     "hue": 212,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "xt3co7d2r",
+     "name": "Faculty Meeting",
+     "cat": "other",
+     "len": 45,
+     "hue": 186,
+     "target": null,
+     "note": "",
+     "groups": [
+      "x70xq3fke"
+     ],
+     "limit": null
+    },
+    {
+     "id": "xu3voy4ec",
+     "name": "Block 2",
+     "cat": "class",
+     "len": 60,
+     "hue": 158,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "xawejfr1t",
+     "name": "Block 3",
+     "cat": "class",
+     "len": 60,
+     "hue": 32,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x2rlw7xwo",
+     "name": "Flex",
+     "cat": "class",
+     "len": 30,
+     "hue": 186,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x0vp8fr70",
+     "name": "Block 4",
+     "cat": "class",
+     "len": 60,
+     "hue": 340,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "xt809yodr",
+     "name": "Extra Help",
+     "cat": "other",
+     "len": 45,
+     "hue": 186,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "xagea86wk",
+     "name": "Block 5",
+     "cat": "class",
+     "len": 60,
+     "hue": 268,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "xjotb33i6",
+     "name": "Lunch",
+     "cat": "lunch",
+     "len": 50,
+     "hue": 52,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x6y328zlx",
+     "name": "Block 6",
+     "cat": "class",
+     "len": 60,
+     "hue": 95,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "xjnce3j5d",
+     "name": "All School",
+     "cat": "other",
+     "len": 40,
+     "hue": 186,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x2p7n6ix8",
+     "name": "Department Meetings",
+     "cat": "other",
+     "len": 45,
+     "hue": 186,
+     "target": null,
+     "note": "",
+     "groups": [
+      "x70xq3fke"
+     ],
+     "limit": null
+    },
+    {
+     "id": "xsdyx82wl",
+     "name": "Advisory Meetings",
+     "cat": "other",
+     "len": 45,
+     "hue": 300,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x91ul3ay3",
+     "name": "HD",
+     "cat": "class",
+     "len": 45,
+     "hue": 12,
+     "target": 90,
+     "note": "HD can be modeled separately from other class blocks, or it can be treated as one of many classes that might be held during a given block. Our current schedule does the latter. This schedule follows that practice for the sake of reducing visual clutter.",
+     "groups": [
+      "x3xaubleb",
+      "xcq3wjx53"
+     ],
+     "limit": {
+      "n": 1,
+      "per": "week"
+     }
+    },
+    {
+     "id": "x8qcfknk7",
+     "name": "Class Meeting (Sr)",
+     "cat": "other",
+     "len": 45,
+     "hue": 130,
+     "target": null,
+     "note": "",
+     "groups": [
+      "xbkzarcyc"
+     ],
+     "limit": null
+    },
+    {
+     "id": "x8qv5tson",
+     "name": "Class Meeting (UM)",
+     "cat": "other",
+     "len": 45,
+     "hue": 268,
+     "target": null,
+     "note": "",
+     "groups": [
+      "xbm1qd4g4"
+     ],
+     "limit": null
+    },
+    {
+     "id": "xjw9xb065",
+     "name": "Class Meeting (Prep)",
+     "cat": "other",
+     "len": 45,
+     "hue": 186,
+     "target": null,
+     "note": "",
+     "groups": [
+      "x3xaubleb"
+     ],
+     "limit": null
+    },
+    {
+     "id": "xe8ral3bq",
+     "name": "Class Meeting (LM)",
+     "cat": "other",
+     "len": 45,
+     "hue": 95,
+     "target": null,
+     "note": "",
+     "groups": [
+      "xcq3wjx53"
+     ],
+     "limit": null
+    },
+    {
+     "id": "xdjqgiaww",
+     "name": "Chapel",
+     "cat": "other",
+     "len": 40,
+     "hue": 12,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "xcxll5ot1",
+     "name": "Community Address Block",
+     "cat": "other",
+     "len": 45,
+     "hue": 240,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "xu8bnbygn",
+     "name": "Co-curricular",
+     "cat": "xudownuyn",
+     "len": 120,
+     "hue": 52,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "xckuvohz4",
+     "name": "Break",
+     "cat": "x7qq04bqt",
+     "len": 15,
+     "hue": 300,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x2aik1f7k",
+     "name": "Administrative Meetings",
+     "cat": "other",
+     "len": 30,
+     "hue": 130,
+     "target": null,
+     "note": "",
+     "groups": [
+      "x70xq3fke"
+     ],
+     "limit": null
+    },
+    {
+     "id": "xogd6uhmy",
+     "name": "Club Block",
+     "cat": "other",
+     "len": 60,
+     "hue": 130,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    }
+   ],
+   "days": [
+    {
+     "start": 480,
+     "items": []
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "xw1cwydou",
+       "t": "b",
+       "blockId": "x2rlw7xwo",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xq8j2e214",
+       "t": "b",
+       "blockId": "x3r2zkt39",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "xz9phbzp5",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x5q0u9l6l",
+          "t": "b",
+          "blockId": "xckuvohz4",
+          "dur": 45,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "x9ztf6xh4",
+          "t": "b",
+          "blockId": "x91ul3ay3",
+          "dur": null,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xphqsc3mc",
+       "t": "b",
+       "blockId": "xu3voy4ec",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "xmzidxeb1",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x51v78i17",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": null
+         },
+         {
+          "id": "xh9arwbns",
+          "t": "b",
+          "blockId": "xawejfr1t",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "xynw89uvh",
+          "t": "b",
+          "blockId": "xawejfr1t",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "x1pto0vjh",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x93umbldi",
+       "t": "b",
+       "blockId": "x0vp8fr70",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xw05cnnj9",
+       "t": "b",
+       "blockId": "x2p7n6ix8",
+       "dur": 35,
+       "gap": null
+      },
+      {
+       "id": "xu0yq042k",
+       "t": "b",
+       "blockId": "xu8bnbygn",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "xqev55gl9",
+       "t": "b",
+       "blockId": "x2rlw7xwo",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xqhcdklz6",
+       "t": "b",
+       "blockId": "xagea86wk",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "x5fvyi3ao",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xdibp9l9o",
+          "t": "b",
+          "blockId": "xckuvohz4",
+          "dur": 45,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "x0dw9ilow",
+          "t": "b",
+          "blockId": "x91ul3ay3",
+          "dur": null,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xsaw0536x",
+       "t": "b",
+       "blockId": "x6y328zlx",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "xy8qoxv7v",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xhma3age4",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": null
+         },
+         {
+          "id": "xel8atg0x",
+          "t": "b",
+          "blockId": "x3r2zkt39",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x0dwngw57",
+          "t": "b",
+          "blockId": "x3r2zkt39",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "xthbgkv5r",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xzdbhs7qu",
+       "t": "b",
+       "blockId": "xu3voy4ec",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xldp0kk8r",
+       "t": "b",
+       "blockId": "xt3co7d2r",
+       "dur": 35,
+       "gap": null
+      },
+      {
+       "id": "xcijohgow",
+       "t": "b",
+       "blockId": "xu8bnbygn",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x017yp8ow",
+       "t": "b",
+       "blockId": "xawejfr1t",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "x3z8jo7eo",
+       "t": "b",
+       "blockId": "x0vp8fr70",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xflvlxt3f",
+       "t": "b",
+       "blockId": "xagea86wk",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "x0qpyezcl",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xuioinjr0",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 110,
+          "gap": null
+         }
+        ],
+        []
+       ]
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "xv6eurebx",
+       "t": "b",
+       "blockId": "x2rlw7xwo",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xscepuqot",
+       "t": "b",
+       "blockId": "x6y328zlx",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "x19f0pb97",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x1t78g8ce",
+          "t": "b",
+          "blockId": "xckuvohz4",
+          "dur": 45,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "xpk6f2qby",
+          "t": "b",
+          "blockId": "x91ul3ay3",
+          "dur": null,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xgomy4zkx",
+       "t": "b",
+       "blockId": "x3r2zkt39",
+       "dur": null,
+       "gap": 0,
+       "note": "The sequence of blocks 1-6 breaks on Thursday to spread morning flex blocks more evenly."
+      },
+      {
+       "id": "xop4dd69p",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xpza4rer9",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": null
+         },
+         {
+          "id": "x79d9twht",
+          "t": "b",
+          "blockId": "xu3voy4ec",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x1lm6bpe8",
+          "t": "b",
+          "blockId": "xu3voy4ec",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "xgs50ova9",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xc0bbbelo",
+       "t": "b",
+       "blockId": "xawejfr1t",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "x817c04z8",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "xsxieqooe",
+          "t": "b",
+          "blockId": "x8qcfknk7",
+          "dur": 35,
+          "gap": null,
+          "note": "Upperclassmen Class Meetings alternate between first and second lunch block each week to accommodate volunteering in Monday's HD courses, if any are scheduled."
+         }
+        ],
+        [
+         {
+          "id": "x2o1r95bq",
+          "t": "b",
+          "blockId": "xe8ral3bq",
+          "dur": 35,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "x67hxbo6d",
+          "t": "b",
+          "blockId": "xdjqgiaww",
+          "dur": 35,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x0wsbbtfw",
+       "t": "b",
+       "blockId": "xu8bnbygn",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "xwg38jcm0",
+       "t": "b",
+       "blockId": "x2rlw7xwo",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xufopzjrq",
+       "t": "b",
+       "blockId": "x0vp8fr70",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "xan0q21h1",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xpo3v5jcy",
+          "t": "b",
+          "blockId": "xckuvohz4",
+          "dur": 45,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "x6bsna6fn",
+          "t": "b",
+          "blockId": "x91ul3ay3",
+          "dur": null,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xl01fdyv9",
+       "t": "b",
+       "blockId": "xagea86wk",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "xzdcis57d",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x4h7k1n5x",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": null
+         },
+         {
+          "id": "xkryn4833",
+          "t": "b",
+          "blockId": "x6y328zlx",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "xqfwlr7kw",
+          "t": "b",
+          "blockId": "x6y328zlx",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "xectl7s48",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x9emmygzp",
+       "t": "b",
+       "blockId": "xsdyx82wl",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "xgjgbom6b",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "xrm1ntf1z",
+          "t": "b",
+          "blockId": "xjw9xb065",
+          "dur": 35,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "xkva83p49",
+          "t": "b",
+          "blockId": "x8qv5tson",
+          "dur": 35,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "xtjmsd9h4",
+          "t": "b",
+          "blockId": "xdjqgiaww",
+          "dur": 35,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x6z51wleu",
+       "t": "b",
+       "blockId": "xu8bnbygn",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 560,
+     "items": [
+      {
+       "id": "x4cc0mrla",
+       "t": "b",
+       "blockId": "x91ul3ay3",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xc924bb5w",
+       "t": "b",
+       "blockId": "xogd6uhmy",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xpflotihg",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "xiazjat0g",
+          "t": "b",
+          "blockId": "xcxll5ot1",
+          "dur": 80,
+          "gap": null,
+          "note": "All-school speakers and events that are currently held as long all-schools are moved to this slot. Theater performances, dorm Olympics, and other community-wide events can be held here. All field trips are moved to Saturdays to reduce class disruptions."
+         }
+        ],
+        [
+         {
+          "id": "x2mwpjuzu",
+          "t": "b",
+          "blockId": "xjnce3j5d",
+          "dur": 35,
+          "gap": null
+         }
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "start": 480,
+     "items": []
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "xgqslhc49",
+       "t": "b",
+       "blockId": "x2rlw7xwo",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xtxcwo68c",
+       "t": "b",
+       "blockId": "x0vp8fr70",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "xwogbs4x7",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xxrvdwf7t",
+          "t": "b",
+          "blockId": "xckuvohz4",
+          "dur": 45,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "xeiyikod6",
+          "t": "b",
+          "blockId": "x91ul3ay3",
+          "dur": null,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xbwkg7830",
+       "t": "b",
+       "blockId": "xagea86wk",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "x6j4plucc",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xlnu14g33",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": null
+         },
+         {
+          "id": "xzebz7ipi",
+          "t": "b",
+          "blockId": "x6y328zlx",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "xhcjd9p9x",
+          "t": "b",
+          "blockId": "x6y328zlx",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "xwo3l7vcr",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xehtgblas",
+       "t": "b",
+       "blockId": "x3r2zkt39",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xwjupmfsj",
+       "t": "b",
+       "blockId": "x2p7n6ix8",
+       "dur": 35,
+       "gap": null
+      },
+      {
+       "id": "x6429oakr",
+       "t": "b",
+       "blockId": "xu8bnbygn",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "xsxudl1rr",
+       "t": "b",
+       "blockId": "x2rlw7xwo",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xpsrb8i3y",
+       "t": "b",
+       "blockId": "xu3voy4ec",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "xdcgk02xq",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xxq00npyh",
+          "t": "b",
+          "blockId": "xckuvohz4",
+          "dur": 45,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "x27oioc9a",
+          "t": "b",
+          "blockId": "x91ul3ay3",
+          "dur": null,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xnes428gw",
+       "t": "b",
+       "blockId": "xawejfr1t",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "xlvyyb7fz",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xp6zg6bt8",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": null
+         },
+         {
+          "id": "xo01cqmm5",
+          "t": "b",
+          "blockId": "x0vp8fr70",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "xw6ow4ia2",
+          "t": "b",
+          "blockId": "x0vp8fr70",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "xxtc0474b",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x0bv2i7s9",
+       "t": "b",
+       "blockId": "xagea86wk",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xjfjhuts4",
+       "t": "b",
+       "blockId": "xt3co7d2r",
+       "dur": 35,
+       "gap": null
+      },
+      {
+       "id": "xkwdfogan",
+       "t": "b",
+       "blockId": "xu8bnbygn",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "xmzp24tc9",
+       "t": "b",
+       "blockId": "x6y328zlx",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xe7frl34x",
+       "t": "b",
+       "blockId": "x3r2zkt39",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xc2qamkva",
+       "t": "b",
+       "blockId": "xu3voy4ec",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xy03on45f",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xdwbdk62m",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 110,
+          "gap": null
+         }
+        ],
+        []
+       ]
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "xrgnaweca",
+       "t": "b",
+       "blockId": "x2rlw7xwo",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xqj6a8142",
+       "t": "b",
+       "blockId": "xawejfr1t",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "xsdbdutm5",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xieqkwbkc",
+          "t": "b",
+          "blockId": "xckuvohz4",
+          "dur": 45,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "xvm3tuduc",
+          "t": "b",
+          "blockId": "x91ul3ay3",
+          "dur": null,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x2k92f1ry",
+       "t": "b",
+       "blockId": "x0vp8fr70",
+       "dur": null,
+       "gap": 0,
+       "note": "The sequence of blocks 1-6 breaks on Thursday to spread morning flex blocks more evenly."
+      },
+      {
+       "id": "xwzscy09p",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xy762q27p",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": null
+         },
+         {
+          "id": "xe2uza2iv",
+          "t": "b",
+          "blockId": "xagea86wk",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "xwb991d1v",
+          "t": "b",
+          "blockId": "xagea86wk",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "xfygwh3bd",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xt8xryi3m",
+       "t": "b",
+       "blockId": "x6y328zlx",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "x36xtq33e",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "xjrime1jq",
+          "t": "b",
+          "blockId": "x8qcfknk7",
+          "dur": 35,
+          "gap": null,
+          "note": "Upperclassmen Class Meetings alternate between first and second lunch block each week to accommodate volunteering in Monday's HD courses, if any are scheduled."
+         }
+        ],
+        [
+         {
+          "id": "x0jyt5r1z",
+          "t": "b",
+          "blockId": "xe8ral3bq",
+          "dur": 35,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "xqq71hub5",
+          "t": "b",
+          "blockId": "xdjqgiaww",
+          "dur": 35,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xdiqeanqb",
+       "t": "b",
+       "blockId": "xu8bnbygn",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "xqy1rae3f",
+       "t": "b",
+       "blockId": "x2rlw7xwo",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "x93bdr9iz",
+       "t": "b",
+       "blockId": "x3r2zkt39",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "x7h41xwc6",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "xcbxdpwn1",
+          "t": "b",
+          "blockId": "xckuvohz4",
+          "dur": 45,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "xgpa6tx0h",
+          "t": "b",
+          "blockId": "x91ul3ay3",
+          "dur": null,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xys6bpk2i",
+       "t": "b",
+       "blockId": "xu3voy4ec",
+       "dur": null,
+       "gap": 0
+      },
+      {
+       "id": "xucgyzlvh",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x7u2z3vie",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": null
+         },
+         {
+          "id": "xukr9427o",
+          "t": "b",
+          "blockId": "xawejfr1t",
+          "dur": null,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "xo2jbvyff",
+          "t": "b",
+          "blockId": "xawejfr1t",
+          "dur": null,
+          "gap": null
+         },
+         {
+          "id": "xcin89ag8",
+          "t": "b",
+          "blockId": "xjotb33i6",
+          "dur": 60,
+          "gap": 0
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xw7a560tb",
+       "t": "b",
+       "blockId": "xsdyx82wl",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "xyoasl8u5",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "xz08nst4g",
+          "t": "b",
+          "blockId": "xjw9xb065",
+          "dur": 35,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "xfxxerm4d",
+          "t": "b",
+          "blockId": "x8qv5tson",
+          "dur": 35,
+          "gap": null
+         }
+        ],
+        [
+         {
+          "id": "x8xr3fzha",
+          "t": "b",
+          "blockId": "xdjqgiaww",
+          "dur": 35,
+          "gap": null
+         }
+        ]
+       ]
+      },
+      {
+       "id": "xmpub49cr",
+       "t": "b",
+       "blockId": "xu8bnbygn",
+       "dur": null,
+       "gap": null
+      }
+     ]
+    },
+    {
+     "start": 560,
+     "items": [
+      {
+       "id": "x49mfp2yu",
+       "t": "b",
+       "blockId": "x91ul3ay3",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "xzvw644ii",
+       "t": "b",
+       "blockId": "xogd6uhmy",
+       "dur": null,
+       "gap": null
+      },
+      {
+       "id": "x54q6avrw",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "xb6cic8i4",
+          "t": "b",
+          "blockId": "xcxll5ot1",
+          "dur": 80,
+          "gap": null,
+          "note": "All-school speakers and events that are currently held as long all-schools are moved to this slot. Theater performances, dorm Olympics, and other community-wide events can be held here. All field trips are moved to Saturdays to reduce class disruptions."
+         }
+        ],
+        [
+         {
+          "id": "xmqbdt0p0",
+          "t": "b",
+          "blockId": "xjnce3j5d",
+          "dur": 35,
+          "gap": null
+         }
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
