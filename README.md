@@ -1,14 +1,15 @@
 # Bell Schedule Modeler
 
-A single-page, self-contained HTML tool for modeling and comparing school bell schedules. Open `index.html` in a browser; there is nothing to build or install.
+A single-page, self-contained HTML tool for modeling and comparing school bell schedules. Open `index.html` in a browser (keep `starter-models.js` next to it); there is nothing to build or install.
 
 ## Contents
 
 | Path | What it is |
 |---|---|
 | `index.html` | The app. |
+| `starter-models.js` | The models the app starts with when nothing is saved in the browser (see [Starting models](#published-version)). Made by `build_artifact.py`; don't edit it by hand. |
 | `school-models/` | Schedule models for 14 peer schools, as JSON the app can import. Rebuilt from `build_models.py`. See [`school-models/README.md`](school-models/README.md) for the rules and per-school choices. |
-| `Hotchkiss_Proposals/` | Hotchkiss schedule models, also importable JSON: the current schedule (status quo) and three proposals (block waterfall; block waterfall with a morning flex; block waterfall minimizing back-to-back class). Each has a 2-hour Co-curricular block (its own type, not class time) starting 5 minutes after the last block on Monday, Tuesday, Thursday and Friday of both weeks. |
+| `Hotchkiss_Proposals/` | Hotchkiss schedule models, also importable JSON: the current schedule (status quo) and four proposals (block waterfall; block waterfall (60-Min); block waterfall with a morning flex; block waterfall minimizing back-to-back class). Each has a 2-hour Co-curricular block (its own type, not class time) starting 5 minutes after the last block on Monday, Tuesday, Thursday and Friday of both weeks. |
 
 ## Using the models
 
@@ -82,13 +83,13 @@ Some blocks repeat through the week, but each student is assigned to only some o
 The modeler is published as a claude.ai page: <https://claude.ai/artifact/VbB7uEsZZxXeVuoUnfYb13>. It's private until it is shared from the page's Share menu.
 
 - **Saving:** each person's schedules are saved in their own browser, as with `index.html`. Nobody sees anyone else's, and a private window or cleared site data starts over, so keep downloaded JSON files as backups. To share a model, download its JSON from Export and send it; the other person uses Import.
-- **Starting models:** someone opening it for the first time starts with the four Hotchkiss models, Deerfield, and the two built-in samples. People who have used it before keep their own saved models, even after an update. To pick up updated starting models they can Import the new files, or use **Start over**, which replaces every model saved in their browser with the current starting models (after offering to download them all first).
+- **Starting models:** someone opening it for the first time starts with four models, in this order: H'kiss Status Quo, Deerfield, H'kiss Block Waterfall (60-Min) and H'kiss Block Waterfall (Morning Flex). `index.html` on this computer starts with the same four, from `starter-models.js`. The other Hotchkiss proposals and peer schools are still in the repo to Import. The two built-in samples appear only if `starter-models.js` is missing or can't be read. People who have used it before keep their own saved models, even after an update. To pick up updated starting models they can Import the new files, or use **Start over**, which replaces every model saved in their browser with the current starting models (after offering to download them all first).
 - **Downloads:** the page is published with the `downloads` capability, so Download and PDF work there through Claude's save prompt for people signed in to Claude. People who aren't signed in (or are in a private window) don't get the save prompt, so those buttons are hidden for them; Copy in Export still works. Print is not available there.
 
 ### Updating it
 
-1. Make the change in `index.html` (and the model files, if the starting models should change).
-2. Run `python build_artifact.py`. It writes `dist/bell-schedule-modeler.html` (the page to publish, without the outer page tags claude.ai adds itself) and `dist/preview.html` (the same page with those tags, to try on this computer). `dist/` is not kept in git.
+1. Make the change in `index.html`. To change the starting models, edit their files, or the `STARTERS` list at the top of `build_artifact.py` (each entry is a file and the name of the model in it, in the order they appear).
+2. Run `python build_artifact.py`. It rewrites `starter-models.js` from `STARTERS` (commit it with the change), and writes `dist/bell-schedule-modeler.html` (the page to publish, with the starting models written into it and without the outer page tags claude.ai adds itself) and `dist/preview.html` (the same page with those tags, to try on this computer). `dist/` is not kept in git.
 3. Republish `dist/bell-schedule-modeler.html` to the same link, keeping the `downloads` capability. Asking Claude Code to "republish the bell schedule modeler to its artifact" does this.
 
 ## Not in the repo

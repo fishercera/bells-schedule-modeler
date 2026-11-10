@@ -395,6 +395,7 @@ textarea.note-in { min-height: 58px; resize: vertical; font: 13px/1.4 var(--f-bo
 <div id="hovercard" hidden></div>
 <div id="dropline" hidden></div>
 
+<script src="starter-models.js"></script>
 <script>
 'use strict';
 /* ---------- Constants ---------- */
@@ -535,19 +536,15 @@ function normalizeModel(m, otherModelNames) {
   m.blocks.forEach((b, i) => { b.name = uniqueName(b.name, m.blocks.slice(0, i).map(x => x.name)); });
   return m;
 }
-/* The models someone starts with when nothing is saved in their browser yet. The published version carries its own
-   (build_artifact.py adds them to the page as JSON in #starter-models, plus samples: true for the two samples after
-   them); anywhere else, or if that JSON can't be read, it's the two samples. */
+/* The models someone starts with when nothing is saved in their browser yet: the ones in starter-models.js, which
+   build_artifact.py makes from its STARTERS list (the published page has that file written into it, so both start the
+   same). If the file is missing or a model in it can't be read, it's the two samples below. */
 function starterModels() {
-  const el = document.getElementById('starter-models');
-  if (el) {
-    try {
-      const data = JSON.parse(el.textContent);
-      const list = (Array.isArray(data?.models) ? data.models : []).map(raw => cleanModel(raw));
-      if (data?.samples) list.push(...sampleModels());
-      if (list.length) return list;
-    } catch (e) { /* use the samples */ }
-  }
+  try {
+    const data = window.STARTER_MODELS;
+    const list = (Array.isArray(data?.models) ? data.models : []).map(raw => cleanModel(raw));
+    if (list.length) return list;
+  } catch (e) { /* use the samples */ }
   return sampleModels();
 }
 function sampleModels() {
@@ -2565,9 +2562,9 @@ async function savePDF() {
     toast('The PDF couldn\'t be made. Check your internet connection (the PDF maker loads from the web) and try again.');
   } finally { pdfBusy = false; $('#pdfBtn').disabled = false; }
 }
-/* Start over: replaces every model saved in this browser with the starting models (in the published version, the
-   ones the page carries; here, the two samples). Useful after an update to the starting models. It can't be undone,
-   so the dialog offers to download all the current models first. */
+/* Start over: replaces every model saved in this browser with the starting models (see starterModels()). Useful
+   after an update to the starting models. It can't be undone, so the dialog offers to download all the current
+   models first. */
 function startOverDlg() {
   const names = starterModels().map(m => m.name), n = S.models.length;
   openDlg(`<div class="dlg"><h2>Start over?</h2>
