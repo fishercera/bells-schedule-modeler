@@ -1,0 +1,2125 @@
+{
+ "app": "bell-schedule-modeler",
+ "version": 4,
+ "models": [
+  {
+   "id": "x00000119",
+   "name": "Two-Week Model (Nov 12)",
+   "passing": 10,
+   "defaultStart": 510,
+   "classTarget": null,
+   "types": [
+    {
+     "id": "class",
+     "name": "Class",
+     "len": 45,
+     "academic": true,
+     "note": ""
+    },
+    {
+     "id": "lunch",
+     "name": "Lunch",
+     "len": 30,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "other",
+     "name": "Other",
+     "len": 45,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "cocurr",
+     "name": "Co-curricular",
+     "len": 90,
+     "academic": false,
+     "note": ""
+    }
+   ],
+   "groups": [
+    {
+     "id": "x00000001",
+     "name": "Prep",
+     "grade": true
+    },
+    {
+     "id": "x00000002",
+     "name": "LM",
+     "grade": true
+    },
+    {
+     "id": "x00000003",
+     "name": "UM",
+     "grade": true
+    },
+    {
+     "id": "x00000004",
+     "name": "Senior",
+     "grade": true
+    }
+   ],
+   "blocks": [
+    {
+     "id": "x00000005",
+     "name": "Block A",
+     "cat": "class",
+     "len": 45,
+     "hue": 40,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000006",
+     "name": "Block B",
+     "cat": "class",
+     "len": 45,
+     "hue": 22,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000007",
+     "name": "Block C",
+     "cat": "class",
+     "len": 45,
+     "hue": 52,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000008",
+     "name": "Block D",
+     "cat": "class",
+     "len": 45,
+     "hue": 340,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000009",
+     "name": "Block E",
+     "cat": "class",
+     "len": 45,
+     "hue": 110,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000010",
+     "name": "Block F",
+     "cat": "class",
+     "len": 45,
+     "hue": 212,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000011",
+     "name": "Block G",
+     "cat": "class",
+     "len": 45,
+     "hue": 186,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000012",
+     "name": "Flex",
+     "cat": "class",
+     "len": 30,
+     "hue": 170,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000013",
+     "name": "L1",
+     "cat": "lunch",
+     "len": 30,
+     "hue": 95,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000014",
+     "name": "L2",
+     "cat": "lunch",
+     "len": 30,
+     "hue": 130,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000015",
+     "name": "Lunch",
+     "cat": "lunch",
+     "len": 90,
+     "hue": 95,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000016",
+     "name": "Community Time",
+     "cat": "other",
+     "len": 45,
+     "hue": 268,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000017",
+     "name": "Advisory",
+     "cat": "other",
+     "len": 45,
+     "hue": 300,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000018",
+     "name": "Faculty Meeting",
+     "cat": "other",
+     "len": 45,
+     "hue": 240,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000019",
+     "name": "ASM",
+     "cat": "other",
+     "len": 45,
+     "hue": 300,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000020",
+     "name": "XHELP",
+     "cat": "other",
+     "len": 60,
+     "hue": 12,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000021",
+     "name": "Clubs, etc.",
+     "cat": "other",
+     "len": 120,
+     "hue": 52,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000022",
+     "name": "Co-curricular",
+     "cat": "cocurr",
+     "len": 90,
+     "hue": 268,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    }
+   ],
+   "days": [
+    {
+     "start": 510,
+     "items": []
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000023",
+       "t": "b",
+       "blockId": "x00000006",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000024",
+       "t": "b",
+       "blockId": "x00000005",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000025",
+       "t": "b",
+       "blockId": "x00000016",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000028",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000026",
+          "t": "b",
+          "blockId": "x00000013",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000027",
+          "t": "b",
+          "blockId": "x00000014",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000029",
+       "t": "b",
+       "blockId": "x00000007",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000030",
+       "t": "b",
+       "blockId": "x00000011",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000031",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000032",
+       "t": "b",
+       "blockId": "x00000008",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000033",
+       "t": "b",
+       "blockId": "x00000006",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000034",
+       "t": "b",
+       "blockId": "x00000009",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000037",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000035",
+          "t": "b",
+          "blockId": "x00000013",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000036",
+          "t": "b",
+          "blockId": "x00000014",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000038",
+       "t": "b",
+       "blockId": "x00000005",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000039",
+       "t": "b",
+       "blockId": "x00000010",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000040",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000041",
+       "t": "b",
+       "blockId": "x00000010",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000042",
+       "t": "b",
+       "blockId": "x00000008",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000043",
+       "t": "b",
+       "blockId": "x00000011",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000047",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "x00000044",
+          "t": "b",
+          "blockId": "x00000007",
+          "dur": 45,
+          "gap": 0
+         },
+         {
+          "id": "x00000045",
+          "t": "b",
+          "blockId": "x00000015",
+          "dur": 60,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000046",
+          "t": "b",
+          "blockId": "x00000015",
+          "dur": 90,
+          "gap": 15
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000048",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 0
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000049",
+       "t": "b",
+       "blockId": "x00000005",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000050",
+       "t": "b",
+       "blockId": "x00000007",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000051",
+       "t": "b",
+       "blockId": "x00000017",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000054",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000052",
+          "t": "b",
+          "blockId": "x00000013",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000053",
+          "t": "b",
+          "blockId": "x00000014",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000055",
+       "t": "b",
+       "blockId": "x00000011",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000056",
+       "t": "b",
+       "blockId": "x00000009",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000057",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000058",
+       "t": "b",
+       "blockId": "x00000009",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000059",
+       "t": "b",
+       "blockId": "x00000008",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000060",
+       "t": "b",
+       "blockId": "x00000016",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000063",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000061",
+          "t": "b",
+          "blockId": "x00000013",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000062",
+          "t": "b",
+          "blockId": "x00000014",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000064",
+       "t": "b",
+       "blockId": "x00000010",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000065",
+       "t": "b",
+       "blockId": "x00000012",
+       "dur": 25,
+       "gap": null
+      },
+      {
+       "id": "x00000066",
+       "t": "b",
+       "blockId": "x00000006",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000067",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 540,
+     "items": [
+      {
+       "id": "x00000068",
+       "t": "b",
+       "blockId": "x00000021",
+       "dur": 120,
+       "gap": null
+      },
+      {
+       "id": "x00000069",
+       "t": "b",
+       "blockId": "x00000015",
+       "dur": 90,
+       "gap": 30
+      },
+      {
+       "id": "x00000070",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 0
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": []
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000071",
+       "t": "b",
+       "blockId": "x00000005",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000072",
+       "t": "b",
+       "blockId": "x00000009",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000073",
+       "t": "b",
+       "blockId": "x00000018",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000076",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000074",
+          "t": "b",
+          "blockId": "x00000013",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000075",
+          "t": "b",
+          "blockId": "x00000014",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000077",
+       "t": "b",
+       "blockId": "x00000006",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000078",
+       "t": "b",
+       "blockId": "x00000008",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000079",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000080",
+       "t": "b",
+       "blockId": "x00000011",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000081",
+       "t": "b",
+       "blockId": "x00000010",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000082",
+       "t": "b",
+       "blockId": "x00000005",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000085",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000083",
+          "t": "b",
+          "blockId": "x00000013",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000084",
+          "t": "b",
+          "blockId": "x00000014",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000086",
+       "t": "b",
+       "blockId": "x00000020",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000087",
+       "t": "b",
+       "blockId": "x00000007",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000088",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000089",
+       "t": "b",
+       "blockId": "x00000006",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000090",
+       "t": "b",
+       "blockId": "x00000007",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000091",
+       "t": "b",
+       "blockId": "x00000011",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000095",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "x00000092",
+          "t": "b",
+          "blockId": "x00000008",
+          "dur": 45,
+          "gap": 0
+         },
+         {
+          "id": "x00000093",
+          "t": "b",
+          "blockId": "x00000015",
+          "dur": 60,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000094",
+          "t": "b",
+          "blockId": "x00000015",
+          "dur": 90,
+          "gap": 15
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000096",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 0
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000097",
+       "t": "b",
+       "blockId": "x00000010",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000098",
+       "t": "b",
+       "blockId": "x00000011",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000099",
+       "t": "b",
+       "blockId": "x00000009",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000102",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000100",
+          "t": "b",
+          "blockId": "x00000013",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000101",
+          "t": "b",
+          "blockId": "x00000014",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000103",
+       "t": "b",
+       "blockId": "x00000008",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000104",
+       "t": "b",
+       "blockId": "x00000006",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000105",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000106",
+       "t": "b",
+       "blockId": "x00000007",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000107",
+       "t": "b",
+       "blockId": "x00000010",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000108",
+       "t": "b",
+       "blockId": "x00000012",
+       "dur": 30,
+       "gap": 5
+      },
+      {
+       "id": "x00000109",
+       "t": "b",
+       "blockId": "x00000019",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000112",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000110",
+          "t": "b",
+          "blockId": "x00000013",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000111",
+          "t": "b",
+          "blockId": "x00000014",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000113",
+       "t": "b",
+       "blockId": "x00000009",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000114",
+       "t": "b",
+       "blockId": "x00000005",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000115",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 540,
+     "items": [
+      {
+       "id": "x00000116",
+       "t": "b",
+       "blockId": "x00000021",
+       "dur": 120,
+       "gap": null
+      },
+      {
+       "id": "x00000117",
+       "t": "b",
+       "blockId": "x00000015",
+       "dur": 90,
+       "gap": 30
+      },
+      {
+       "id": "x00000118",
+       "t": "b",
+       "blockId": "x00000022",
+       "dur": 90,
+       "gap": 0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "x00000243",
+   "name": "Two-Week Model (Nov 12) + Sat Classes",
+   "passing": 10,
+   "defaultStart": 510,
+   "classTarget": null,
+   "types": [
+    {
+     "id": "class",
+     "name": "Class",
+     "len": 45,
+     "academic": true,
+     "note": ""
+    },
+    {
+     "id": "lunch",
+     "name": "Lunch",
+     "len": 30,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "other",
+     "name": "Other",
+     "len": 45,
+     "academic": false,
+     "note": ""
+    },
+    {
+     "id": "cocurr",
+     "name": "Co-curricular",
+     "len": 90,
+     "academic": false,
+     "note": ""
+    }
+   ],
+   "groups": [
+    {
+     "id": "x00000120",
+     "name": "Prep",
+     "grade": true
+    },
+    {
+     "id": "x00000121",
+     "name": "LM",
+     "grade": true
+    },
+    {
+     "id": "x00000122",
+     "name": "UM",
+     "grade": true
+    },
+    {
+     "id": "x00000123",
+     "name": "Senior",
+     "grade": true
+    }
+   ],
+   "blocks": [
+    {
+     "id": "x00000124",
+     "name": "Block A",
+     "cat": "class",
+     "len": 45,
+     "hue": 40,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000125",
+     "name": "Block B",
+     "cat": "class",
+     "len": 45,
+     "hue": 22,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000126",
+     "name": "Block C",
+     "cat": "class",
+     "len": 45,
+     "hue": 52,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000127",
+     "name": "Block D",
+     "cat": "class",
+     "len": 45,
+     "hue": 340,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000128",
+     "name": "Block E",
+     "cat": "class",
+     "len": 45,
+     "hue": 110,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000129",
+     "name": "Block F",
+     "cat": "class",
+     "len": 45,
+     "hue": 212,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000130",
+     "name": "Block G",
+     "cat": "class",
+     "len": 45,
+     "hue": 186,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000131",
+     "name": "Flex",
+     "cat": "class",
+     "len": 30,
+     "hue": 170,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000132",
+     "name": "L1",
+     "cat": "lunch",
+     "len": 30,
+     "hue": 95,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000133",
+     "name": "L2",
+     "cat": "lunch",
+     "len": 30,
+     "hue": 130,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000134",
+     "name": "Lunch",
+     "cat": "lunch",
+     "len": 90,
+     "hue": 95,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000135",
+     "name": "Community Time",
+     "cat": "other",
+     "len": 45,
+     "hue": 268,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000136",
+     "name": "Advisory",
+     "cat": "other",
+     "len": 45,
+     "hue": 300,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000137",
+     "name": "Faculty Meeting",
+     "cat": "other",
+     "len": 45,
+     "hue": 240,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000138",
+     "name": "ASM",
+     "cat": "other",
+     "len": 45,
+     "hue": 300,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000139",
+     "name": "XHELP",
+     "cat": "other",
+     "len": 60,
+     "hue": 12,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000140",
+     "name": "Clubs, etc.",
+     "cat": "other",
+     "len": 120,
+     "hue": 52,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    },
+    {
+     "id": "x00000141",
+     "name": "Co-curricular",
+     "cat": "cocurr",
+     "len": 90,
+     "hue": 268,
+     "target": null,
+     "note": "",
+     "groups": [],
+     "limit": null
+    }
+   ],
+   "days": [
+    {
+     "start": 510,
+     "items": []
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000142",
+       "t": "b",
+       "blockId": "x00000125",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000143",
+       "t": "b",
+       "blockId": "x00000124",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000144",
+       "t": "b",
+       "blockId": "x00000135",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000147",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000145",
+          "t": "b",
+          "blockId": "x00000132",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000146",
+          "t": "b",
+          "blockId": "x00000133",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000148",
+       "t": "b",
+       "blockId": "x00000126",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000149",
+       "t": "b",
+       "blockId": "x00000130",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000150",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000151",
+       "t": "b",
+       "blockId": "x00000127",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000152",
+       "t": "b",
+       "blockId": "x00000125",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000153",
+       "t": "b",
+       "blockId": "x00000128",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000156",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000154",
+          "t": "b",
+          "blockId": "x00000132",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000155",
+          "t": "b",
+          "blockId": "x00000133",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000157",
+       "t": "b",
+       "blockId": "x00000124",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000158",
+       "t": "b",
+       "blockId": "x00000129",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000159",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000160",
+       "t": "b",
+       "blockId": "x00000129",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000161",
+       "t": "b",
+       "blockId": "x00000127",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000162",
+       "t": "b",
+       "blockId": "x00000130",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000166",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "x00000163",
+          "t": "b",
+          "blockId": "x00000126",
+          "dur": 45,
+          "gap": 0
+         },
+         {
+          "id": "x00000164",
+          "t": "b",
+          "blockId": "x00000134",
+          "dur": 60,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000165",
+          "t": "b",
+          "blockId": "x00000134",
+          "dur": 90,
+          "gap": 15
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000167",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 0
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000168",
+       "t": "b",
+       "blockId": "x00000124",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000169",
+       "t": "b",
+       "blockId": "x00000126",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000170",
+       "t": "b",
+       "blockId": "x00000136",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000173",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000171",
+          "t": "b",
+          "blockId": "x00000132",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000172",
+          "t": "b",
+          "blockId": "x00000133",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000174",
+       "t": "b",
+       "blockId": "x00000130",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000175",
+       "t": "b",
+       "blockId": "x00000128",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000176",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000177",
+       "t": "b",
+       "blockId": "x00000128",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000178",
+       "t": "b",
+       "blockId": "x00000127",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000179",
+       "t": "b",
+       "blockId": "x00000135",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000182",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000180",
+          "t": "b",
+          "blockId": "x00000132",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000181",
+          "t": "b",
+          "blockId": "x00000133",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000183",
+       "t": "b",
+       "blockId": "x00000129",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000184",
+       "t": "b",
+       "blockId": "x00000131",
+       "dur": 25,
+       "gap": null
+      },
+      {
+       "id": "x00000185",
+       "t": "b",
+       "blockId": "x00000125",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000186",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 540,
+     "items": [
+      {
+       "id": "x00000187",
+       "t": "b",
+       "blockId": "x00000124",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000188",
+       "t": "b",
+       "blockId": "x00000125",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000189",
+       "t": "b",
+       "blockId": "x00000128",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000190",
+       "t": "b",
+       "blockId": "x00000134",
+       "dur": 85,
+       "gap": 0,
+       "note": "PDF lists Saturday lunch as 11:30-1:00; shown here starting when classes end."
+      },
+      {
+       "id": "x00000191",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 0
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": []
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000192",
+       "t": "b",
+       "blockId": "x00000124",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000193",
+       "t": "b",
+       "blockId": "x00000128",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000194",
+       "t": "b",
+       "blockId": "x00000137",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000197",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000195",
+          "t": "b",
+          "blockId": "x00000132",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000196",
+          "t": "b",
+          "blockId": "x00000133",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000198",
+       "t": "b",
+       "blockId": "x00000125",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000199",
+       "t": "b",
+       "blockId": "x00000127",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000200",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000201",
+       "t": "b",
+       "blockId": "x00000130",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000202",
+       "t": "b",
+       "blockId": "x00000129",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000203",
+       "t": "b",
+       "blockId": "x00000124",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000206",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000204",
+          "t": "b",
+          "blockId": "x00000132",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000205",
+          "t": "b",
+          "blockId": "x00000133",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000207",
+       "t": "b",
+       "blockId": "x00000139",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000208",
+       "t": "b",
+       "blockId": "x00000126",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000209",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000210",
+       "t": "b",
+       "blockId": "x00000125",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000211",
+       "t": "b",
+       "blockId": "x00000126",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000212",
+       "t": "b",
+       "blockId": "x00000130",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000216",
+       "t": "s",
+       "gap": null,
+       "lanes": [
+        [
+         {
+          "id": "x00000213",
+          "t": "b",
+          "blockId": "x00000127",
+          "dur": 45,
+          "gap": 0
+         },
+         {
+          "id": "x00000214",
+          "t": "b",
+          "blockId": "x00000134",
+          "dur": 60,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000215",
+          "t": "b",
+          "blockId": "x00000134",
+          "dur": 90,
+          "gap": 15
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000217",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 0
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000218",
+       "t": "b",
+       "blockId": "x00000129",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000219",
+       "t": "b",
+       "blockId": "x00000130",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000220",
+       "t": "b",
+       "blockId": "x00000128",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000223",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000221",
+          "t": "b",
+          "blockId": "x00000132",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000222",
+          "t": "b",
+          "blockId": "x00000133",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000224",
+       "t": "b",
+       "blockId": "x00000127",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000225",
+       "t": "b",
+       "blockId": "x00000125",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000226",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 510,
+     "items": [
+      {
+       "id": "x00000227",
+       "t": "b",
+       "blockId": "x00000126",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000228",
+       "t": "b",
+       "blockId": "x00000129",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000229",
+       "t": "b",
+       "blockId": "x00000131",
+       "dur": 30,
+       "gap": 5
+      },
+      {
+       "id": "x00000230",
+       "t": "b",
+       "blockId": "x00000138",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000233",
+       "t": "s",
+       "gap": 0,
+       "lanes": [
+        [
+         {
+          "id": "x00000231",
+          "t": "b",
+          "blockId": "x00000132",
+          "dur": 30,
+          "gap": 0
+         }
+        ],
+        [
+         {
+          "id": "x00000232",
+          "t": "b",
+          "blockId": "x00000133",
+          "dur": 30,
+          "gap": 35
+         }
+        ]
+       ]
+      },
+      {
+       "id": "x00000234",
+       "t": "b",
+       "blockId": "x00000128",
+       "dur": 60,
+       "gap": null
+      },
+      {
+       "id": "x00000235",
+       "t": "b",
+       "blockId": "x00000124",
+       "dur": 80,
+       "gap": null
+      },
+      {
+       "id": "x00000236",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 35
+      }
+     ]
+    },
+    {
+     "start": 540,
+     "items": [
+      {
+       "id": "x00000237",
+       "t": "b",
+       "blockId": "x00000129",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000238",
+       "t": "b",
+       "blockId": "x00000127",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000239",
+       "t": "b",
+       "blockId": "x00000130",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000240",
+       "t": "b",
+       "blockId": "x00000126",
+       "dur": 45,
+       "gap": null
+      },
+      {
+       "id": "x00000241",
+       "t": "b",
+       "blockId": "x00000134",
+       "dur": 30,
+       "gap": 0,
+       "note": "PDF lists Saturday lunch as 11:30-1:00; shown here starting when classes end."
+      },
+      {
+       "id": "x00000242",
+       "t": "b",
+       "blockId": "x00000141",
+       "dur": 90,
+       "gap": 0
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
