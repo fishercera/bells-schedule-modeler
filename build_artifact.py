@@ -25,8 +25,8 @@ DIST = ROOT / 'dist'
 STARTERS = [
     ('Hotchkiss_Proposals/h-kiss-status-quo-model.json', "H'kiss Status Quo"),
     ('school-models/all-schools.json', 'Deerfield'),
-    ('Hotchkiss_Proposals/h-kiss-block-waterfall-60-min--model.json', "H'kiss Block Waterfall (60-Min)"),
-    ('Hotchkiss_Proposals/h-kiss-block-waterfall-morning-flex--model.json', "H'kiss Block Waterfall (Morning Flex)"),
+    ('Hotchkiss_Proposals/h-kiss-block-waterfall-60-min--model.json', "Fisher Block Waterfall (60-Min)"),
+    ('Hotchkiss_Proposals/h-kiss-block-waterfall-morning-flex--model.json', "Fisher Block Waterfall (Morning Flex)"),
     ('Hotchkiss_Proposals/hyland-2-week.json', 'Hyland Two-Week'),
     ('Hotchkiss_Proposals/hyland-2-week.json', 'Hyland Two-Week (Sat Classes)'),
     ('Hotchkiss_Proposals/sisk-hotchkiss.json', 'Sisk Traditional (Sat Classes)'),
