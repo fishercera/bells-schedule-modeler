@@ -27,6 +27,12 @@ STARTERS = [
     ('school-models/all-schools.json', 'Deerfield'),
     ('Hotchkiss_Proposals/h-kiss-block-waterfall-60-min--model.json', "H'kiss Block Waterfall (60-Min)"),
     ('Hotchkiss_Proposals/h-kiss-block-waterfall-morning-flex--model.json', "H'kiss Block Waterfall (Morning Flex)"),
+    ('Hotchkiss_Proposals/hyland-2-week.json', 'Hyland Two-Week'),
+    ('Hotchkiss_Proposals/hyland-2-week.json', 'Hyland Two-Week (Sat Classes)'),
+    ('Hotchkiss_Proposals/sisk-hotchkiss.json', 'Sisk Traditional (Sat Classes)'),
+    ('Hotchkiss_Proposals/sisk-hotchkiss.json', 'Sisk Traditional (No Saturday)'),
+    ('Hotchkiss_Proposals/sisk-hotchkiss.json', 'Sisk Block (Sat Classes)'),
+    ('Hotchkiss_Proposals/sisk-hotchkiss.json', 'Sisk Block (No Saturday)'),
 ]
 STARTER_FILE = 'starter-models.js'
 STARTER_TAG = f'<script src="{STARTER_FILE}"></script>'

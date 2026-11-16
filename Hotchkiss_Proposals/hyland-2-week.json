@@ -4,7 +4,7 @@
  "models": [
   {
    "id": "x00000119",
-   "name": "Two-Week Model (Nov 12)",
+   "name": "Hyland Two-Week",
    "passing": 10,
    "defaultStart": 510,
    "classTarget": null,
@@ -1045,7 +1045,7 @@
   },
   {
    "id": "x00000243",
-   "name": "Two-Week Model (Nov 12) + Sat Classes",
+   "name": "Hyland Two-Week (Sat Classes)",
    "passing": 10,
    "defaultStart": 510,
    "classTarget": null,
